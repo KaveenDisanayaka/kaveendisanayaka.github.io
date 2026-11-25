@@ -1,0 +1,2318 @@
+<!DOCTYPE html>
+<html>
+<head><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0A84FF"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"><title>Uni Planner</title><script>if ("serviceWorker" in navigator) addEventListener("load", function () { navigator.serviceWorker.register("sw.js"); });</script>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F2F2F7; --card: rgba(255,255,255,.62); --solid: #FFFFFF; --card2: #F2F2F7; --fill: rgba(120,120,128,.12);
+    --label: #000000; --label2: rgba(60,60,67,.60); --label3: rgba(60,60,67,.30); --sep: rgba(60,60,67,.18);
+    --blue: #007AFF; --green: #34C759; --red: #FF3B30; --orange: #FF9500; --yellow: #FFCC00;
+    --purple: #AF52DE; --pink: #FF2D55; --teal: #30B0C7; --indigo: #5856D6; --gray: #8E8E93;
+    --bar: rgba(246,246,248,.66); --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 30px rgba(0,0,0,.07); --glass-line: rgba(255,255,255,.7);
+    --blob1: rgba(10,132,255,.20); --blob2: rgba(175,82,222,.16); --blob3: rgba(52,199,89,.13);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --card: rgba(36,36,40,.55); --solid: #1C1C1E; --card2: #2C2C2E; --fill: rgba(120,120,128,.24);
+      --label: #FFFFFF; --label2: rgba(235,235,245,.60); --label3: rgba(235,235,245,.30); --sep: rgba(84,84,88,.65);
+      --blue: #0A84FF; --green: #30D158; --red: #FF453A; --orange: #FF9F0A; --yellow: #FFD60A;
+      --purple: #BF5AF2; --pink: #FF375F; --teal: #40C8E0; --indigo: #5E5CE6; --gray: #8E8E93;
+      --bar: rgba(18,18,22,.62); --shadow: 0 8px 30px rgba(0,0,0,.25); --glass-line: rgba(255,255,255,.08);
+      --blob1: rgba(10,132,255,.30); --blob2: rgba(191,90,242,.24); --blob3: rgba(48,209,88,.14);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { background: var(--bg); }
+  html, body { margin: 0; color: var(--label); }
+  body { background: transparent; min-height: 100vh; }
+  /* soft colour light behind the glass (like iOS wallpapers) */
+  body:before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
+    background: radial-gradient(38% 28% at 12% 8%, var(--blob1), transparent 70%), radial-gradient(34% 30% at 92% 28%, var(--blob2), transparent 70%),
+      radial-gradient(42% 34% at 28% 92%, var(--blob3), transparent 70%), radial-gradient(30% 24% at 85% 85%, var(--blob1), transparent 70%);
+    filter: blur(20px); animation: drift 30s ease-in-out infinite alternate; }
+  @keyframes drift { to { transform: translate3d(-3%, 2%, 0) scale(1.06); } }
+  /* frosted glass */
+  .group, .opt, .rcard, .dlcard, .notebox, .picker, .nta, .drop {
+    backdrop-filter: blur(24px) saturate(170%); -webkit-backdrop-filter: blur(24px) saturate(170%);
+    box-shadow: var(--shadow), inset 0 0 0 .5px var(--glass-line); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px; line-height: 1.29; letter-spacing: -0.2px; -webkit-font-smoothing: antialiased; }
+  svg.i { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- header ---------- */
+  header { position: sticky; top: 0; z-index: 10; padding: calc(env(safe-area-inset-top) + 10px) 20px 6px;
+    background: var(--bar); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: .5px solid transparent; transition: border-color .2s; }
+  header.scrolled { border-bottom-color: var(--sep); }
+  .eyebrow { font-size: 13px; font-weight: 600; color: var(--red); text-transform: uppercase; letter-spacing: .2px; height: 16px; }
+  .large { font-size: 34px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.15; margin: 2px 0 0; }
+  .sub { color: var(--label2); font-size: 13px; margin-top: 2px; min-height: 16px; }
+
+  /* week strip */
+  .strip { display: flex; align-items: center; gap: 2px; margin: 12px -8px 4px; }
+  .strip .nav { width: 30px; height: 44px; border: 0; background: none; color: var(--blue); display: grid; place-items: center; cursor: pointer; padding: 0; }
+  .days { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); }
+  .d { text-align: center; cursor: pointer; padding: 2px 0; user-select: none; }
+  .d .w { font-size: 11px; font-weight: 600; color: var(--label2); text-transform: uppercase; }
+  .d .n { margin: 4px auto 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; font-weight: 500; transition: background .2s, color .2s; }
+  .d.today .n { color: var(--red); font-weight: 700; }
+  .d.sel .n { background: var(--label); color: var(--bg); font-weight: 700; }
+  .d.sel.today .n { background: var(--red); color: #fff; }
+
+  main { padding: 8px 16px calc(env(safe-area-inset-bottom) + 100px); animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .section { font-size: 13px; color: var(--label2); text-transform: uppercase; letter-spacing: .1px; margin: 22px 16px 7px; }
+  .section.big { text-transform: none; font-size: 22px; font-weight: 700; color: var(--label); letter-spacing: -0.4px; margin: 24px 4px 10px; }
+
+  /* ---------- hero "next up" ---------- */
+  .hero { border-radius: 20px; padding: 16px 18px; color: #fff; margin: 8px 0 6px; box-shadow: var(--shadow);
+    background: linear-gradient(135deg, #3B82F6 0%, #6366F1 55%, #8B5CF6 100%); position: relative; overflow: hidden; }
+  .hero:after { content: ""; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,.12); }
+  .hero .k { font-size: 13px; font-weight: 600; opacity: .85; text-transform: uppercase; letter-spacing: .3px; }
+  .hero .t { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-top: 4px; }
+  .hero .m { font-size: 15px; opacity: .92; margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero .m span { display: inline-flex; align-items: center; gap: 5px; }
+  .hero .m svg.i { width: 16px; height: 16px; }
+  .hero.free { background: linear-gradient(135deg, #34C759 0%, #30B0C7 100%); }
+  .hero.holiday { background: linear-gradient(135deg, #FF9500 0%, #FF2D55 100%); }
+
+  /* ---------- grouped list ---------- */
+  .group { background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; position: relative; cursor: default; transition: background .15s; }
+  .row + .row:before { content: ""; position: absolute; top: 0; left: 62px; right: 0; border-top: .5px solid var(--sep); }
+  .row:active { background: var(--fill); }
+  .tile { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; color: #fff; flex: none; margin-top: 1px; }
+  .tile svg.i { width: 20px; height: 20px; stroke-width: 2; }
+  .content { flex: 1; min-width: 0; }
+  .ttl { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; word-wrap: break-word; }
+  .meta { color: var(--label2); font-size: 15px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .meta svg.i { width: 15px; height: 15px; }
+  .note { color: var(--label2); font-size: 14px; margin-top: 4px; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+  .pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--fill); color: var(--label2); }
+  .pill.green { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+  .pill.red { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+  .pill.orange { background: color-mix(in srgb, var(--orange) 16%, transparent); color: var(--orange); }
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .done .ttl { color: var(--label2); text-decoration: line-through; text-decoration-color: var(--label3); }
+  .cancelled .ttl { text-decoration: line-through; color: var(--label2); }
+  .timecol { flex: none; width: 58px; text-align: right; font-size: 14px; color: var(--label2); font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .timecol b { display: block; color: var(--label); font-size: 15px; font-weight: 600; }
+
+  /* round check like Reminders */
+  .chk { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--label3); flex: none; margin-top: 6px; display: grid; place-items: center;
+    cursor: pointer; transition: all .2s cubic-bezier(.2,.9,.3,1.3); background: none; padding: 0; }
+  .chk svg.i { width: 15px; height: 15px; stroke: #fff; stroke-width: 3; opacity: 0; transform: scale(.4); transition: all .2s; }
+  .chk.on { background: var(--blue); border-color: var(--blue); }
+  .chk.on svg.i { opacity: 1; transform: none; }
+
+  /* ---------- buttons ---------- */
+  button { font: inherit; cursor: pointer; }
+  .btn { border: 0; border-radius: 12px; padding: 14px 18px; font-size: 17px; font-weight: 600; background: var(--blue); color: #fff; width: 100%;
+    transition: transform .12s, opacity .2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .45; }
+  .btn.tinted { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
+  .btn.gray { background: var(--fill); color: var(--label); }
+  .btn.small { width: auto; padding: 7px 14px; font-size: 15px; border-radius: 999px; }
+  .btn.red { background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--red); }
+  .btn.grad { background: linear-gradient(135deg, #0A84FF, #5E5CE6); box-shadow: 0 6px 18px rgba(10,132,255,.32); }
+
+  /* ---------- form ---------- */
+  .field { display: flex; align-items: center; gap: 12px; padding: 11px 14px; position: relative; min-height: 50px; }
+  .field + .field:before { content: ""; position: absolute; top: 0; left: 62px; right: 0; border-top: .5px solid var(--sep); }
+  .field label { flex: 1; font-size: 17px; }
+  .field input, .field textarea { border: 0; background: none; color: var(--label); font: inherit; outline: none; width: 100%; }
+  .dbox { position: relative; display: inline-flex; align-items: center; justify-content: flex-end; flex: 0 0 auto; min-width: 96px;
+    color: var(--blue); background: var(--fill); border-radius: 8px; padding: 0 10px; height: 34px; box-sizing: border-box; overflow: hidden; font-size: 16px; white-space: nowrap; }
+  .dbox.blank { color: var(--label2); }
+  .dbox > input { position: absolute !important; inset: 0; width: 100% !important; height: 34px !important; min-height: 0 !important; opacity: 0; margin: 0; padding: 0 !important; cursor: pointer; }
+  .field input[type=date], .field input[type=time] { width: auto; text-align: right; color: var(--blue); background: var(--fill); border-radius: 8px; padding: 6px 10px; font-size: 16px; }
+  .field textarea { min-height: 60px; resize: none; padding-top: 2px; }
+  .bigin { font-size: 22px !important; font-weight: 600; letter-spacing: -0.4px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 14px 14px 62px; }
+  .chip { border: 0; background: var(--fill); color: var(--label); border-radius: 999px; padding: 8px 14px; font-size: 15px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px; transition: all .15s; }
+  .chip svg.i { width: 16px; height: 16px; }
+  .chip.on { background: var(--blue); color: #fff; font-weight: 600; }
+  .hint { color: var(--label2); font-size: 13px; margin: 8px 16px 0; }
+
+  /* ---------- suggestion cards ---------- */
+  .opt { background: var(--card); border-radius: 18px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); border: 2px solid transparent; animation: fade .3s ease both; }
+  .opt.best { border-color: var(--blue); }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 6px; }
+  .badge svg.i { width: 14px; height: 14px; fill: var(--blue); stroke: var(--blue); }
+  .opt .day { font-size: 15px; color: var(--label2); font-weight: 600; }
+  .opt .time { font-size: 28px; font-weight: 700; letter-spacing: -0.6px; margin: 2px 0 8px; }
+  .why { list-style: none; padding: 0; margin: 0 0 14px; }
+  .why li { display: flex; gap: 8px; align-items: center; font-size: 15px; color: var(--label2); margin: 4px 0; }
+  .why svg.i { width: 16px; height: 16px; color: var(--green); stroke-width: 2.4; }
+
+  /* ---------- tab bar ---------- */
+  nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; display: flex; padding: 6px 4px calc(env(safe-area-inset-bottom) + 6px);
+    background: var(--bar); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: .5px solid var(--sep); }
+  nav button { flex: 1; border: 0; background: none; color: var(--gray); font-size: 10px; font-weight: 500; display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative; padding: 2px 0; }
+  nav button svg.i { width: 26px; height: 26px; stroke-width: 1.7; }
+  nav button.on { color: var(--blue); }
+  nav button.on svg.i { stroke-width: 2.2; }
+  nav .plus { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, #0A84FF, #5E5CE6); color: #fff; display: grid; place-items: center;
+    margin-top: -14px; box-shadow: 0 6px 16px rgba(10,132,255,.4); }
+  nav .plus svg.i { width: 24px; height: 24px; stroke-width: 2.6; }
+  nav .count { position: absolute; top: -2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff;
+    font-size: 11px; font-weight: 700; display: none; align-items: center; justify-content: center; }
+
+  /* ---------- sheet + toast ---------- */
+  .sheet { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.25); display: none; align-items: flex-end; animation: fade .2s; }
+  .sheet .panel { width: 100%; max-height: 88vh; overflow: auto; background: color-mix(in srgb, var(--bg) 72%, transparent); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); border-radius: 16px 16px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom) + 20px);
+    animation: up .32s cubic-bezier(.2,.9,.3,1); }
+  @keyframes up { from { transform: translateY(100%); } to { transform: none; } }
+  .grab { width: 36px; height: 5px; border-radius: 3px; background: var(--label3); margin: 4px auto 12px; }
+  .sheet h3 { font-size: 20px; font-weight: 700; margin: 4px 0 12px; letter-spacing: -0.4px; }
+  .success { text-align: center; padding: 12px 8px 4px; }
+  .ring { width: 84px; height: 84px; border-radius: 50%; background: var(--green); margin: 8px auto 14px; display: grid; place-items: center; animation: pop .45s cubic-bezier(.2,.9,.3,1.4); }
+  .ring svg.i { width: 44px; height: 44px; stroke: #fff; stroke-width: 3; }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+  .success .t { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+  .success .s { color: var(--label2); margin: 6px 0 18px; }
+  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 92px); transform: translateX(-50%); z-index: 50; background: var(--card2);
+    color: var(--label); padding: 11px 18px; border-radius: 14px; font-size: 15px; font-weight: 500; box-shadow: 0 8px 30px rgba(0,0,0,.18); display: none; max-width: 88%; text-align: center; }
+  .warn { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); border-radius: 12px; padding: 12px 14px; font-size: 15px; }
+  .empty { text-align: center; color: var(--label2); padding: 34px 20px; }
+  .empty .bigicon { width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 12px; display: grid; place-items: center; background: var(--fill); color: var(--label2); }
+  .empty .bigicon svg.i { width: 32px; height: 32px; }
+  .skel { height: 64px; border-radius: 14px; background: linear-gradient(90deg, var(--card) 0%, var(--card2) 50%, var(--card) 100%); background-size: 200% 100%; animation: sh 1.2s infinite; margin-bottom: 10px; }
+  @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  a { color: var(--blue); text-decoration: none; word-break: break-all; }
+  /* segmented control */
+  .segctl { display: flex; background: var(--fill); border-radius: 10px; padding: 2px; margin: 4px 0 6px; }
+  .segctl button { flex: 1; border: 0; background: none; color: var(--label); font-size: 15px; font-weight: 500; padding: 8px 6px; border-radius: 8px; transition: all .2s; }
+  .segctl button.on { background: var(--solid); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  .segctl button:not(.on) { color: var(--label2); }
+  @media (prefers-color-scheme: dark) { .segctl button.on { background: #636366; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); } }
+  .value { color: var(--label2); font-size: 17px; display: inline-flex; align-items: center; gap: 2px; }
+  .value svg.i { width: 16px; height: 16px; color: var(--label3); }
+  .tap { cursor: pointer; }
+  /* wheel picker (like a timer) */
+  .wheel { position: relative; height: 220px; display: flex; justify-content: center; gap: 6px; margin: 4px 0 18px; }
+  .wheel .band { position: absolute; left: 16px; right: 16px; top: 88px; height: 44px; border-radius: 10px; background: var(--fill); pointer-events: none; }
+  .wheel .col { position: relative; z-index: 1; width: 130px; height: 220px; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent); mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent); }
+  .wheel .col::-webkit-scrollbar { display: none; }
+  .wheel .col div { height: 44px; line-height: 44px; scroll-snap-align: center; text-align: center; font-size: 23px; font-variant-numeric: tabular-nums; }
+  .wheel .col .pad { scroll-snap-align: none; }
+  /* repeat picker */
+  .opts .row { cursor: pointer; align-items: center; min-height: 48px; }
+  .opts .row + .row:before { left: 16px; }
+  .tickmark { color: var(--blue); visibility: hidden; }
+  .tickmark svg.i { width: 20px; height: 20px; stroke-width: 2.6; }
+  .opts .row.sel .tickmark { visibility: visible; }
+  .stepper { display: inline-flex; align-items: center; background: var(--fill); border-radius: 9px; }
+  .stepper button { border: 0; background: none; color: var(--label); width: 40px; height: 34px; font-size: 22px; }
+  .stepper b { min-width: 34px; text-align: center; font-size: 17px; }
+  .wd { display: flex; justify-content: space-between; gap: 6px; padding: 4px 0; }
+  .wd button { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--fill); color: var(--label); font-weight: 600; font-size: 15px; transition: all .15s; }
+  .wd button.on { background: var(--blue); color: #fff; }
+  .summary { background: color-mix(in srgb, var(--blue) 12%, transparent); color: var(--blue); border-radius: 12px; padding: 11px 14px; font-weight: 600; font-size: 15px; display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .summary svg.i { width: 18px; height: 18px; }
+  /* ---------- Calendar tab (iOS Calendar style) ---------- */
+  .calnav { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .calnav .segctl { flex: 1; margin: 0; }
+  .calnav .nav { width: 34px; height: 34px; border: 0; background: var(--fill); border-radius: 50%; color: var(--blue); display: grid; place-items: center; padding: 0; }
+  .calnav .nav svg.i { width: 18px; height: 18px; stroke-width: 2.4; }
+  .dhead { display: flex; margin: 10px -20px 0; padding: 0 0 6px; }
+  .dhead .g { width: 46px; flex: none; }
+  .dhead .c { flex: 1; text-align: center; cursor: pointer; min-width: 0; }
+  .dhead .w { font-size: 11px; color: var(--label2); font-weight: 600; text-transform: uppercase; }
+  .dhead .n { margin: 3px auto 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; font-weight: 500; }
+  .dhead .c.today .n { background: var(--red); color: #fff; font-weight: 700; }
+  .allday { display: flex; margin: 0 -16px 6px; }
+  .allday .g { width: 46px; flex: none; font-size: 10px; color: var(--label2); text-align: right; padding: 4px 6px 0 0; }
+  .allday .c { flex: 1; min-width: 0; padding: 0 1px; }
+  .adchip { font-size: 11px; font-weight: 600; border-radius: 5px; padding: 2px 5px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .tgrid { position: relative; display: flex; margin: 0 -16px; }
+  .tgrid .gut { width: 46px; flex: none; position: relative; }
+  .tgrid .gut span { position: absolute; right: 6px; font-size: 11px; color: var(--label2); transform: translateY(-7px); font-variant-numeric: tabular-nums; }
+  .tgrid .col { flex: 1; position: relative; min-width: 0; border-left: .5px solid var(--sep); cursor: pointer;
+    background-image: linear-gradient(var(--sep) .5px, transparent .5px); }
+  .tgrid .col.today { background-color: color-mix(in srgb, var(--blue) 4%, transparent); }
+  .blk { position: absolute; border-radius: 6px; padding: 3px 5px; overflow: hidden; cursor: pointer; border-left: 3px solid; font-size: 12px; line-height: 1.2; box-sizing: border-box; }
+  .blk b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .blk span { opacity: .85; font-size: 11px; }
+  .blk.small { font-size: 10px; padding: 2px 1px 2px 2px; letter-spacing: -0.5px; border-left-width: 2px; }
+  .blk.small b { text-overflow: clip; }
+  .blk.small span { display: none; }
+  .blk.dl { height: 20px !important; border-radius: 10px; border-left-width: 0; display: flex; align-items: center; gap: 3px; padding: 0 6px; font-weight: 600; white-space: nowrap; }
+  .blk.dl svg.i { width: 12px; height: 12px; flex: none; }
+  .blk.cancelled b { text-decoration: line-through; }
+  .nowline { position: absolute; left: 0; right: 0; height: 2px; background: var(--red); z-index: 3; pointer-events: none; }
+  .nowline:before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
+  .nowlabel { position: absolute; right: 4px; font-size: 11px; font-weight: 700; color: var(--red); background: var(--bg); padding: 0 2px; transform: translateY(-7px); z-index: 3; }
+  /* month */
+  .mgrid { display: grid; grid-template-columns: repeat(7, 1fr); margin: 0 -8px; }
+  .mgrid .wl { text-align: center; font-size: 11px; font-weight: 600; color: var(--label2); padding: 6px 0; text-transform: uppercase; }
+  .mcell { text-align: center; padding: 6px 0 8px; border-top: .5px solid var(--sep); cursor: pointer; min-height: 58px; }
+  .mcell .n { width: 32px; height: 32px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; font-size: 17px; }
+  .mcell.other .n { color: var(--label3); }
+  .mcell.today .n { color: var(--red); font-weight: 700; }
+  .mcell.sel .n { background: var(--label); color: var(--bg); font-weight: 700; }
+  .mcell.sel.today .n { background: var(--red); color: #fff; }
+  .dots { display: flex; justify-content: center; gap: 3px; margin-top: 4px; height: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; display: block; }
+  /* resolve */
+  .rcard { background: var(--card); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .rcard .top { display: flex; gap: 12px; align-items: flex-start; }
+  .rcard .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .rcard .state { margin-top: 8px; font-size: 15px; font-weight: 600; color: var(--green); display: flex; align-items: center; gap: 6px; }
+  .rcard .state svg.i { width: 18px; height: 18px; stroke-width: 2.6; }
+  /* ---------- timetable import ---------- */
+  .sw { width: 51px; height: 31px; border-radius: 16px; background: var(--fill); position: relative; flex: none; border: 0; padding: 0; transition: background .2s; margin-top: 3px; }
+  .sw:after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); transition: transform .2s; }
+  .sw.on { background: var(--green); }
+  .sw.on:after { transform: translateX(20px); }
+  .drop { border: 2px dashed var(--label3); border-radius: 18px; padding: 28px 18px; text-align: center; background: var(--card); }
+  .drop .bigicon { width: 72px; height: 72px; border-radius: 20px; margin: 0 auto 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #5E5CE6, #0A84FF); }
+  .drop .bigicon svg.i { width: 36px; height: 36px; }
+  .bul { list-style: none; padding: 0; margin: 14px 0 0; text-align: left; }
+  .bul li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; color: var(--label2); margin: 8px 0; }
+  .bul svg.i { width: 18px; height: 18px; color: var(--green); stroke-width: 2.4; margin-top: 1px; }
+  .reading { text-align: center; padding: 30px 10px; }
+  .spinner { width: 46px; height: 46px; border-radius: 50%; border: 4px solid var(--fill); border-top-color: var(--blue); margin: 0 auto 16px; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sticky { position: sticky; bottom: calc(env(safe-area-inset-bottom) + 84px); margin-top: 18px; z-index: 5; }
+  .off .ttl, .off .meta { opacity: .45; }
+  .importrow { display: flex; align-items: center; gap: 12px; }
+  /* drag and drop */
+  .blk { touch-action: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .blk.own { cursor: grab; touch-action: none; }   /* your tasks: a swipe here drags, it does not scroll */
+  .blk.dragging { z-index: 20; transform: scale(1.04); box-shadow: 0 14px 34px rgba(0,0,0,.28); opacity: .96; transition: transform .12s; cursor: grabbing; }
+  .draglabel { position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 8px); background: var(--label); color: var(--bg);
+    padding: 8px 14px; border-radius: 12px; font-size: 15px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25); pointer-events: none; white-space: nowrap; }
+  .tgrid .col.target { background-color: color-mix(in srgb, var(--blue) 8%, transparent); }
+
+
+
+
+
+  /* ---------- side drawer ---------- */
+  header .large { padding-right: 44px; }
+  .menubtn { position: absolute; right: 14px; top: calc(env(safe-area-inset-top) + 8px); width: 38px; height: 38px; border-radius: 50%; border: 0;
+    background: var(--fill); color: var(--label); display: grid; place-items: center; z-index: 2; }
+  .menubtn svg.i { width: 20px; height: 20px; }
+  .drawer { position: fixed; inset: 0; z-index: 50; display: none; }
+  .drawer.open { display: block; }
+  .drawer .shade { position: absolute; inset: 0; background: rgba(0,0,0,.25); animation: fade .2s; }
+  .drawer .dpanel { position: absolute; top: 0; bottom: 0; right: 0; width: min(82vw, 330px); background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); box-shadow: -10px 0 40px rgba(0,0,0,.3);
+    padding: calc(env(safe-area-inset-top) + 20px) 14px calc(env(safe-area-inset-bottom) + 16px); overflow: auto; animation: slidein .25s ease-out; }
+  @keyframes slidein { from { transform: translateX(100%); } to { transform: none; } }
+  .dhead2 { display: flex; align-items: center; gap: 12px; padding: 4px 6px 18px; }
+  .dhead2 .logo { width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #0A84FF, #5E5CE6); display: grid; place-items: center; color: #fff; }
+  .dhead2 .logo svg.i { width: 26px; height: 26px; }
+  .ditem { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; color: var(--label); font-size: 17px; padding: 10px 8px; border-radius: 12px; text-align: left; }
+  .ditem.on { background: var(--fill); font-weight: 600; }
+  .ditem .tile { margin: 0; width: 32px; height: 32px; }
+  .backlink { border: 0; background: none; color: var(--blue); font-size: 17px; display: inline-flex; align-items: center; gap: 2px; padding: 4px 0 10px; }
+  .badge2 { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--fill); color: var(--label2); margin: 6px 6px 0 0; }
+  .badge2.red { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+  .field select { border: 0; background: var(--fill); color: var(--blue); font: inherit; border-radius: 8px; padding: 6px 10px; }
+  .ginput { width: 70px !important; text-align: right; background: var(--fill) !important; border-radius: 8px; padding: 6px 10px !important; color: var(--blue) !important; }
+
+  /* ---------- deadlines countdown ---------- */
+  .cd { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 17px; white-space: nowrap; }
+  .cd.red { color: var(--red); } .cd.orange { color: var(--orange); } .cd.green { color: var(--green); } .cd.gray { color: var(--label2); }
+  .dlrow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; }
+  .dlrow + .dlrow { border-top: .5px solid var(--sep); }
+  .dlcard { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 14px; padding: 12px 14px; margin: 10px 0 4px; cursor: pointer; box-shadow: var(--shadow); }
+  .bigcd { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+  /* ---------- notes ---------- */
+  .notebox { background: var(--card); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+  .notebox .txt { white-space: pre-wrap; font-size: 15px; }
+  .linkchip { display: inline-flex; align-items: center; gap: 4px; background: color-mix(in srgb, var(--blue) 16%, transparent); color: var(--blue);
+    border-radius: 8px; padding: 3px 8px; font-size: 13px; font-weight: 600; margin-top: 6px; }
+  .linkchip svg.i { width: 14px; height: 14px; }
+  .picker { background: var(--card); border-radius: 12px; margin-top: 8px; max-height: 230px; overflow: auto; }
+  .picker .row { cursor: pointer; align-items: center; padding: 9px 12px; }
+  .picker .row + .row { border-top: .5px solid var(--sep); }
+  .nta { width: 100%; min-height: 90px; border: 0; border-radius: 12px; background: var(--card); color: var(--label); font: inherit; font-size: 16px; padding: 12px; outline: none; resize: vertical; }
+
+  .evhead { display: flex; gap: 12px; align-items: flex-start; margin: 6px 0 4px; }
+  .evhead .tile { width: 44px; height: 44px; border-radius: 12px; }
+  .evhead .meta { margin-top: 3px; }
+
+  /* ---------- deadline cards (glass squares with a countdown ring) ---------- */
+  .dlgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
+  .dlsq { position: relative; aspect-ratio: 1 / 1.14; border-radius: 24px; padding: 12px 12px 12px; cursor: pointer; overflow: hidden;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--c) 34%, transparent), color-mix(in srgb, var(--c) 12%, transparent));
+    border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+    backdrop-filter: blur(22px) saturate(160%); -webkit-backdrop-filter: blur(22px) saturate(160%);
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--c) 22%, transparent), inset 0 1px 0 rgba(255,255,255,.18);
+    display: flex; flex-direction: column; transition: transform .15s, background 1s, border-color 1s; }
+  .dlsq:active { transform: scale(.97); }
+  .dlsq.urgent { animation: glow 1.6s ease-in-out infinite; }
+  @keyframes glow { 0%,100% { box-shadow: 0 8px 28px color-mix(in srgb, var(--c) 25%, transparent); } 50% { box-shadow: 0 8px 40px color-mix(in srgb, var(--c) 65%, transparent); } }
+  .dltop { display: flex; justify-content: space-between; }
+  .dltype { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--c);
+    background: color-mix(in srgb, var(--c) 18%, transparent); padding: 3px 8px 3px 6px; border-radius: 999px; }
+  .dltype svg.i { width: 13px; height: 13px; stroke-width: 2.2; }
+  .dlring { position: relative; width: 64px; height: 64px; margin: 6px auto 2px; }
+  .dlring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+  .dlring .trk { fill: none; stroke: color-mix(in srgb, var(--c) 20%, transparent); stroke-width: 5; }
+  .dlring .prg { fill: none; stroke: var(--c); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 1s; }
+  .dlsweep { position: absolute; inset: 0; border-radius: 50%; animation: spin 60s linear infinite; }
+  .dlsweep:before { content: ""; position: absolute; top: -1px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+  .dlsq.urgent .dlsweep { animation-duration: 10s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .dlin { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+  .dln { font-size: 22px; font-weight: 800; color: var(--c); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+  .dlu { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--label2); margin-top: 2px; }
+  .dlcheck { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 30%, transparent); color: var(--c); }
+  .dlcheck svg.i { width: 32px; height: 32px; stroke-width: 2.6; }
+  .dlbig { text-align: center; font-size: 17px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; color: var(--c); }
+  .dlttl { font-size: 14px; font-weight: 600; line-height: 1.2; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .dlwhen { font-size: 12px; color: var(--label2); margin-top: auto; padding-top: 3px; }
+
+  .lockscr { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; text-align: center;
+    background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); }
+  .fp { width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 18px; display: grid; place-items: center; cursor: pointer; color: var(--blue);
+    background: color-mix(in srgb, var(--blue) 14%, transparent); box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 40%, transparent); animation: fpPulse 2s ease-out infinite; transition: color .25s, background .25s; }
+  .fp svg.i { width: 56px; height: 56px; stroke-width: 1.5; }
+  @keyframes fpPulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--blue) 45%, transparent); } 100% { box-shadow: 0 0 0 26px transparent; } }
+  .fp.bad { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); animation: fpShake .4s; }
+  @keyframes fpShake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+  .lockscr.ok .fp { color: var(--green); background: color-mix(in srgb, var(--green) 16%, transparent); animation: none; }
+  .lockscr { transition: opacity .3s; }
+  .lkt { font-size: 22px; font-weight: 700; } .lkn { color: var(--label2); font-size: 15px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header id="hdr">
+  <button class="menubtn" id="menubtn" onclick="openDrawer()" aria-label="Menu"><span data-i="menu"></span></button>
+  <div class="eyebrow" id="eyebrow"></div>
+  <div class="large" id="htitle">Today</div>
+  <div class="sub" id="hsub"></div>
+  <div class="strip" id="strip"></div>
+  <div id="hextra"></div>
+</header>
+
+<main id="main"></main>
+
+<nav>
+  <button id="n-today" class="on" onclick="show('today')"><span data-i="today"></span>Today</button>
+  <button id="n-week" onclick="show('week')"><span data-i="calendar"></span>Calendar</button>
+  <button id="n-add" onclick="show('add')"><span class="plus" data-i="plus"></span></button>
+  <button id="n-q" onclick="show('deadlines')"><span data-i="hourglass"></span>Deadlines<span class="count" id="dcount"></span></button>
+  <button id="n-up" onclick="show('updates')"><span data-i="bell"></span>Updates<span class="count" id="qcount"></span></button>
+</nav>
+
+<div class="drawer" id="drawer"><div class="shade" onclick="closeDrawer()"></div><div class="dpanel" id="dpanel"></div></div>
+<div class="lockscr" id="lockscr"><div class="lk">
+  <div class="fp" id="lockfp" onclick="window.__unlock && window.__unlock()" aria-label="Unlock with fingerprint"><span data-i="finger"></span></div>
+  <div class="lkt">Uni Planner</div><div class="lkn" id="lockmsg">Touch the fingerprint sensor</div></div></div>
+<div class="toast" id="toast"></div>
+<div class="sheet" id="sheet" onclick="if(event.target===this)sheetOutside()"><div class="panel" id="sheetPanel"></div></div>
+
+<script>
+// ---------------- icons (simple line icons, drawn for this app) ----------------
+var ICONS = {
+  today: '<rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9.5l1.5 1.5 3-3M8.5 15h7"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  question: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.8.4-1.2.9-1.2 1.8v.3M12 16.8v.2"/>',
+  bell: '<path d="M6 16.5V11a6 6 0 1 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>',
+  pin: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  flask: '<path d="M9.5 3.5h5M10.5 3.5v5.5L5.8 17.6A2 2 0 0 0 7.5 20.5h9a2 2 0 0 0 1.7-2.9L13.5 9V3.5"/><path d="M7.7 14.5h8.6"/>',
+  doc: '<path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5M9 13h6M9 16.5h4"/>',
+  pencil: '<path d="M15.5 4.5l4 4L9 19H5v-4z"/><path d="M13.5 6.5l4 4"/>',
+  book: '<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5h12v14h-12a2 2 0 0 0-2 2z"/><path d="M4.5 19.5a2 2 0 0 0 2 1.5h12v-3.5"/>',
+  run: '<circle cx="14.5" cy="4.8" r="1.8"/><path d="M7 21l3.2-5 3 2.5V22M9.5 10.5l3-2.2 2.5 3.2 3 1M12.5 8.3l-1.8 5.4"/>',
+  heart: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
+  sparkle: '<path d="M12 3.5l1.9 5.2 5.1 1.8-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.8z"/><path d="M18.5 16v4M16.5 18h4"/>',
+  person: '<circle cx="12" cy="8" r="3.8"/><path d="M4.8 20.5a7.2 7.2 0 0 1 14.4 0"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>',
+  lecture: '<path d="M3 9l9-4.5L21 9l-9 4.5z"/><path d="M7 11v4.5c1.5 1.5 3 2 5 2s3.5-.5 5-2V11M21 9v5"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  flag: '<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>',
+  menu: '<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>',
+  finger: '<path d="M7.6 5.2A8 8 0 0 1 20 11.8"/><path d="M4 9.6a8.1 8.1 0 0 1 1.4-2.8"/><path d="M4.1 14.2a26 26 0 0 0 .4-2.6 7.5 7.5 0 0 1 .5-2.4"/><path d="M8 18.8c.8-2.1 1.1-4.4 1.1-7a2.9 2.9 0 0 1 5.8 0c0 3-.4 5.8-1.2 8.2"/><path d="M12 11.8c0 3.3-.6 6.3-1.8 8.8"/><path d="M17.9 15.2c-.1 1.7-.4 3.3-.9 4.8"/><path d="M6.2 15.6a17 17 0 0 0 .5-3.8 5.3 5.3 0 0 1 10.6 0c0 .5 0 1-.1 1.4"/>',
+  hourglass: '<path d="M7 3.5h10M7 20.5h10M8 3.5c0 4 4 5 4 8.5s-4 4.5-4 8.5M16 3.5c0 4-4 5-4 8.5s4 4.5 4 8.5"/>',
+  at: '<circle cx="12" cy="12" r="3.5"/><path d="M15.5 12v1.3a2.2 2.2 0 0 0 4.4 0V12a7.9 7.9 0 1 0-3.1 6.3"/>',
+  exam: '<rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
+  home: '<path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5.5h4V20"/>',
+  user: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/>',
+  stack: '<path d="M12 3.5l8.5 4.5-8.5 4.5-8.5-4.5z"/><path d="M3.5 12l8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5"/>',
+  phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.5"/><path d="M11 18h2"/>',
+  shield: '<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/>',
+  star: '<path d="M12 3.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L12 16.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z"/>',
+  left: '<path d="M14.5 5.5L8 12l6.5 6.5"/>',
+  right: '<path d="M9.5 5.5L16 12l-6.5 6.5"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  alert: '<path d="M12 4l9 15.5H3z"/><path d="M12 10v4M12 17v.2"/>',
+  x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  repeat: '<path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h11.5M16.5 3l3 3-3 3"/><path d="M19.5 13v1.5A3.5 3.5 0 0 1 16 18H4.5M7.5 21l-3-3 3-3"/>',
+  timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 1.5M9.5 2.5h5"/>',
+  upload: '<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4.5 14v4a2.5 2.5 0 0 0 2.5 2.5h10a2.5 2.5 0 0 0 2.5-2.5v-4"/>',
+  table: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/>',
+  chev: '<path d="M10 6.5l5.5 5.5-5.5 5.5"/>',
+  moodle: '<path d="M4 18V10l4-2.5L12 10l4-2.5 4 2.5v8"/><path d="M8 7.5V18M16 7.5V18"/>',
+};
+function icon(n, cls) { return '<svg class="i' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24">' + (ICONS[n] || ICONS.sparkle) + '</svg>'; }
+Array.prototype.forEach.call(document.querySelectorAll('[data-i]'), function (el) { el.insertAdjacentHTML('afterbegin', icon(el.getAttribute('data-i'))); });
+
+// ---------------- helpers ----------------
+function newTask() { return { durationMin: 60, category: 'personal', mode: 'find', repeat: { freq: 'none' } }; }
+var state = { view: 'today', date: null, today: null, week: null, task: newTask(), lastAdd: null };
+// Two ways to talk to the brain: inside Google (google.script.run) or as the real app (secret key door).
+var IN_GOOGLE = !!(window.google && google.script && google.script.run);
+// ---- security v2: the phone's own key, locked in secure storage; every message is signed ----
+function idb() {
+  return new Promise(function (res, rej) {
+    var r = indexedDB.open('uniplanner', 1);
+    r.onupgradeneeded = function () { r.result.createObjectStore('kv'); };
+    r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
+  });
+}
+function idbGet(k) { return idb().then(function (db) { return new Promise(function (res, rej) { var q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = function () { res(q.result); }; q.onerror = function () { rej(q.error); }; }); }); }
+function idbSet(k, v) { return idb().then(function (db) { return new Promise(function (res, rej) { var t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = function () { res(); }; t.onerror = function () { rej(t.error); }; }); }); }
+function idbDel(k) { return idb().then(function (db) { return new Promise(function (res) { var t = db.transaction('kv', 'readwrite'); t.objectStore('kv').delete(k); t.oncomplete = function () { res(); }; t.onerror = function () { res(); }; }); }); }
+function toHex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+function randHex(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return toHex(a); }
+var DEV = null, SKEW = 0;                   // DEV = { u, d, key: CryptoKey that cannot be read or copied }
+function loadDev() { return IN_GOOGLE ? Promise.resolve(null) : idbGet('dev').then(function (v) { DEV = v || null; return DEV; }).catch(function () { return null; }); }
+function apiPost(u, obj) {
+  return fetch(u, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(obj) })
+    .catch(function () { throw new Error('No internet. Check your connection and try again.'); })
+    .then(function (r) { return r.json().catch(function () { throw new Error('Uni Planner did not answer. Try again in a minute.'); }); });
+}
+/** The QR link: https://you.github.io/#u=<door>&c=<one-time code>. The part after # never goes to GitHub. */
+function takeSetupLink() {
+  if (IN_GOOGLE || !/[#&]c=/.test(location.hash)) return Promise.resolve(false);
+  var q = {}; location.hash.slice(1).split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+  history.replaceState(null, '', location.pathname);   // remove the code from the address bar at once
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_\-]+\/exec$/.test(q.u || '') || !/^[0-9a-f]{32}$/.test(q.c || '')) return Promise.resolve(false);
+  if (!window.crypto || !crypto.subtle || !window.indexedDB) { drawSetup('This browser cannot keep a secure key. Please use Chrome.'); return Promise.resolve(false); }
+  header('WELCOME', 'Connecting…', '', false);
+  $('main').innerHTML = '<div class="reading"><div class="spinner"></div><div class="ttl">Making a secret key on this phone…</div></div>';
+  var raw;
+  return crypto.subtle.generateKey({ name: 'HMAC', hash: 'SHA-256', length: 256 }, true, ['sign'])
+    .then(function (k) { return crypto.subtle.exportKey('raw', k); })
+    .then(function (r) { raw = r; return apiPost(q.u, { reg: { c: q.c, key: toHex(raw) } }); })
+    .then(function (j) {
+      if (!j.ok) throw new Error(j.error || 'Could not connect.');
+      // keep the key in a form that can SIGN but can never be read or copied again
+      return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']).then(function (locked) {
+        new Uint8Array(raw).fill(0); raw = null;
+        DEV = { u: q.u, d: j.d, key: locked };
+        try { localStorage.removeItem('up_cfg'); } catch (e) {}
+        return idbSet('dev', DEV).then(function () { return true; });
+      });
+    })
+    .catch(function (e) { if (raw) new Uint8Array(raw).fill(0); drawSetup(e.message || String(e)); return 'failed'; });
+}
+window.addEventListener('hashchange', function () { if (/[#&]c=/.test(location.hash)) takeSetupLink().then(function (ok) { if (ok === true) startApp(true); }); });
+function signedCall(fn, args, retried) {
+  var inner = JSON.stringify({ d: DEV.d, t: Date.now() + SKEW, n: randHex(16), fn: fn, args: args });
+  return crypto.subtle.sign('HMAC', DEV.key, new TextEncoder().encode(inner)).then(function (sig) {
+    return apiPost(DEV.u, { p: inner, s: toHex(sig) });
+  }).then(function (j) {
+    if (j.ok) return j.r;
+    if (j.clock && !retried) { SKEW = j.now - Date.now(); return signedCall(fn, args, true); }   // the phone clock is a little wrong
+    if (j.badKey) { DEV = null; idbDel('dev'); drawSetup('This phone is not connected any more. Connect it again.'); return new Promise(function () {}); }
+    throw new Error(j.error || 'Something went wrong.');
+  });
+}
+function call(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  if (IN_GOOGLE) return new Promise(function (res, rej) { var r = google.script.run.withSuccessHandler(res).withFailureHandler(rej); r[fn].apply(r, args); });
+  if (!DEV) { drawSetup(); return new Promise(function () {}); }
+  return signedCall(fn, args);
+}
+
+// ---- app lock with fingerprint / screen lock (WebAuthn, this phone only) ----
+function b64u(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64u(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); }); }
+function lockAvailable() {
+  if (IN_GOOGLE || !window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return Promise.resolve(false);
+  return PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(function () { return false; });
+}
+function lockCheck(id) {
+  return navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), timeout: 60000, userVerification: 'required',
+    allowCredentials: [{ type: 'public-key', id: unb64u(id), transports: ['internal'] }] } });
+}
+function lockOn() {
+  return navigator.credentials.create({ publicKey: {
+    challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { name: 'Uni Planner', id: location.hostname },
+    user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'Uni Planner', displayName: 'Uni Planner' },
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' }, timeout: 60000 } })
+    .then(function (c) { return idbSet('lock', { id: b64u(c.rawId) }); });
+}
+function showLock() {
+  return idbGet('lock').then(function (L) {
+    if (!L) return true;
+    var scr = $('lockscr'), fp = $('lockfp'), msg = $('lockmsg');
+    scr.style.display = 'flex'; scr.classList.remove('ok'); fp.classList.remove('bad');
+    msg.textContent = 'Touch the fingerprint sensor';
+    return new Promise(function (res) {
+      var busy = false;
+      window.__unlock = function () {
+        if (busy) return; busy = true; fp.classList.remove('bad');
+        lockCheck(L.id).then(function () {
+          scr.classList.add('ok'); msg.textContent = 'Unlocked';
+          setTimeout(function () { scr.style.display = 'none'; scr.classList.remove('ok'); window.__hiddenAt = 0; res(true); }, 350);
+        }).catch(function () {
+          busy = false; fp.classList.add('bad');
+          msg.textContent = 'Not matched. Tap the fingerprint to try again.';
+        });
+      };
+      setTimeout(window.__unlock, 250);     // starts by itself: just touch the sensor
+    });
+  }).catch(function () { return true; });
+}
+document.addEventListener('visibilitychange', function () {   // lock again after 2 minutes away
+  if (IN_GOOGLE) return;
+  if (document.hidden) window.__hiddenAt = Date.now();
+  else if (window.__hiddenAt && Date.now() - window.__hiddenAt > 120000) showLock();
+});
+function startApp(justLinked) {
+  showLock().then(function () {
+    show('today');
+    if (justLinked) setTimeout(function () { toast('Connected ✓ This phone has its own secret key now.'); }, 600);
+  });
+}
+function drawSetup(why) {
+  header('WELCOME', 'Connect the app', '', false);
+  $('main').innerHTML = (why ? '<div class="warn">' + esc(why) + '</div>' : '') +
+    '<div class="group" style="padding:18px 16px">' +
+    '<div class="row" style="padding:0 0 14px"><div class="tile" style="background:var(--green)">' + icon('table') + '</div><div class="content"><b>1. On your laptop</b><div class="note">Open your Uni Planner sheet. Click <b>Uni Planner → 10. Phone app: connect a phone</b>.</div></div></div>' +
+    '<div class="row" style="padding:0 0 14px"><div class="tile" style="background:var(--blue)">' + icon('sparkle') + '</div><div class="content"><b>2. On your phone</b><div class="note">Scan the QR code with the camera within 10 minutes. The phone makes its own secret key.</div></div></div>' +
+    '<div class="row" style="padding:0"><div class="tile" style="background:var(--purple)">' + icon('check') + '</div><div class="content"><b>3. Open the app</b><div class="note">Close Chrome and open Uni Planner from your home screen.</div></div></div>' +
+    '</div>';
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function toast(msg) { var t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, 3000); }
+function fail(e) { $('main').innerHTML = '<div class="warn">' + esc(e && e.message || e) + '</div>'; }
+function addDays(ymd, n) { var p = ymd.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)).toISOString().slice(0, 10); }
+var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+var MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function parts(ymd) { var p = ymd.split('-').map(Number); return { y: p[0], m: p[1] - 1, d: p[2], w: new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay() }; }
+function nice(ymd, long) { var p = parts(ymd); return (long ? DAYS[p.w] : DAYS[p.w].slice(0, 3)) + ', ' + p.d + ' ' + (long ? MON[p.m] : MON[p.m].slice(0, 3)); }
+function ampm(hm) { if (!hm) return ''; var p = hm.split(':').map(Number); return (p[0] % 12 || 12) + ':' + String(p[1]).padStart(2, '0') + ' ' + (p[0] < 12 ? 'AM' : 'PM'); }
+function mondayOf(ymd) { var w = parts(ymd).w; return addDays(ymd, w === 0 ? -6 : 1 - w); }
+function skeleton(n) { var h = ''; for (var i = 0; i < (n || 3); i++) h += '<div class="skel"></div>'; return h; }
+window.addEventListener('scroll', function () { $('hdr').classList.toggle('scrolled', window.scrollY > 4); });
+
+// what kind of item is it? -> icon + colour
+// each module has its own colour (like separate calendars)
+var MODCOL = ['#007AFF', '#FF9500', '#34C759', '#AF52DE', '#FF2D55', '#30B0C7', '#5856D6', '#A2845E', '#FFB300', '#00A86B', '#E8590C', '#7048E8'];
+state.modules = [];
+function moduleColor(code) {
+  var i = state.modules.indexOf(code);
+  if (i < 0) { var h = 0; for (var k = 0; k < code.length; k++) h = (h * 31 + code.charCodeAt(k)) >>> 0; i = h; }
+  return MODCOL[i % MODCOL.length];
+}
+function kindOf(it) {
+  var k = kindOf0(it), ty = String(it.type || '');
+  var code = /^([A-Z]{2,3}\d{4})\b/.exec(cleanTitle(it.title));
+  if (code && !it.personal && ty !== 'Task' && ty !== 'Deadline' && ty !== 'Holiday') k = { i: k.i, c: moduleColor(code[1]) };
+  return k;
+}
+function kindOf0(it) {
+  var t = String(it.title), ty = String(it.type || ''), kind = (/Kind: (\w+)/.exec(it.notes || '') || [])[1];
+  if (it.personal) return { i: 'person', c: 'var(--gray)' };
+  if (/^🏖️/.test(t) || ty === 'Holiday') return { i: 'sun', c: 'var(--orange)' };
+  if (ty === 'Practical') return { i: 'flask', c: 'var(--teal)' };
+  if (ty === 'Deadline') return { i: 'doc', c: it.color === '10' ? 'var(--green)' : 'var(--red)' };
+  if (ty === 'Quiz') return { i: 'pencil', c: 'var(--purple)' };
+  if (ty === 'Exam') return { i: 'exam', c: 'var(--purple)' };
+  if (ty === 'Task' && it.start && it.start === it.end) return { i: 'flag', c: 'var(--red)' };   // my own deadline
+  if (ty === 'Task') return { study: { i: 'book', c: 'var(--blue)' }, exercise: { i: 'run', c: 'var(--green)' }, personal: { i: 'heart', c: 'var(--pink)' } }[kind] || { i: 'sparkle', c: 'var(--indigo)' };
+  if (/Lecture|Tutorial|Extra/.test(ty)) return { i: 'lecture', c: 'var(--indigo)' };
+  return { i: 'calendar', c: 'var(--indigo)' };
+}
+function cleanTitle(t) { return String(t).replace(/^(❌ (CANCELLED|HOLIDAY): )/, '').replace(/^⚪ Not yours: /, '').replace(/^[^A-Za-z0-9"'(]+\s*/, '').replace(/\s+\((submitted|group\?)\)$/, ''); }
+
+// ---------------- navigation ----------------
+function setNav(v) {
+  ['today', 'week', 'add', 'q', 'up'].forEach(function (k) { $('n-' + k).classList.remove('on'); });
+  var id = { today: 'n-today', week: 'n-week', add: 'n-add', deadlines: 'n-q', questions: 'n-up', updates: 'n-up', practical: 'n-add' }[v];
+  if (id) $(id).classList.add('on');
+}
+// ---- date and time boxes: Android shows an empty box, so we show our own text on top
+function dboxText(inp) {
+  var v = inp.value;
+  if (!v) return inp.type === 'time' ? '--:-- --' : 'dd/mm/yy';
+  if (inp.type === 'time') return ampm(v);
+  var p = v.split('-');
+  return p[2] + '/' + p[1] + '/' + p[0].slice(2);
+}
+function dboxSync(inp) {
+  var b = inp.parentNode; if (!b || !b.classList || !b.classList.contains('dbox')) return;
+  b.firstChild.textContent = dboxText(inp); b.classList.toggle('blank', !inp.value);
+}
+function dboxWrap(root) {
+  (root.querySelectorAll ? root.querySelectorAll('input[type=date],input[type=time]') : []).forEach(function (inp) {
+    if (inp.parentNode.classList.contains('dbox')) return dboxSync(inp);
+    var b = document.createElement('span'); b.className = 'dbox';
+    b.appendChild(document.createElement('span'));
+    inp.parentNode.insertBefore(b, inp); b.appendChild(inp);
+    inp.addEventListener('input', function () { dboxSync(inp); });
+    inp.addEventListener('change', function () { dboxSync(inp); });
+    dboxSync(inp);
+  });
+}
+new MutationObserver(function (list) {
+  list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) dboxWrap(n); }); });
+}).observe(document.documentElement, { childList: true, subtree: true });
+setInterval(function () { document.querySelectorAll('.dbox > input').forEach(dboxSync); }, 700);   // values set by code
+
+function show(v) {
+  state.view = v; setNav(v); window.scrollTo(0, 0);
+  $('main').style.animation = 'none'; void $('main').offsetWidth; $('main').style.animation = '';
+  if (v === 'today') loadDay(state.date);
+  if (v === 'week') loadWeek();
+  if (v === 'add') renderAdd();
+  if (v === 'questions') loadUpdates();
+  if (v === 'updates') loadUpdates();
+  if (v === 'subjects') loadSubjects();
+  if (v === 'details') loadDetails();
+  if (v === 'settings') loadSettings();
+  if (v === 'practical') openPractical();
+  if (v === 'deadlines') loadDeadlines();
+  if (v === 'exams') loadExams();
+  if (v !== 'deadlines' && window.__cdTimer) { clearInterval(window.__cdTimer); window.__cdTimer = null; }
+}
+function header(eyebrow, title, sub, strip) {
+  $('eyebrow').style.height = ''; $('eyebrow').textContent = eyebrow || ''; $('htitle').textContent = title; $('hsub').textContent = sub || '';
+  $('strip').style.display = strip ? 'flex' : 'none';
+  $('hextra').innerHTML = '';
+}
+function drawStrip(selected, weekMode) {
+  var mon = mondayOf(selected), h = '<button class="nav" onclick="jump(-7)">' + icon('left') + '</button><div class="days">';
+  for (var i = 0; i < 7; i++) {
+    var d = addDays(mon, i), p = parts(d);
+    var cls = 'd' + (d === state.today ? ' today' : '') + (!weekMode && d === selected ? ' sel' : '');
+    h += '<div class="' + cls + '" onclick="pick(\'' + d + '\')"><div class="w">' + DAYS[p.w].slice(0, 1) + '</div><div class="n">' + p.d + '</div></div>';
+  }
+  $('strip').innerHTML = h + '</div><button class="nav" onclick="jump(7)">' + icon('right') + '</button>';
+}
+function pick(d) { state.date = d; if (state.view !== 'today') show('today'); else loadDay(d); }
+function jump(n) {
+  if (state.view === 'week') { state.week = addDays(state.week, n); loadWeek(state.week); }
+  else { state.date = addDays(state.date, n); loadDay(state.date); }
+}
+
+// ---------------- rows ----------------
+function itemRow(it, opts) {
+  opts = opts || {};
+  var k = kindOf(it), title = cleanTitle(it.title);
+  var cls = 'row' + (it.done ? ' done' : '') + (it.status === 'cancelled' ? ' cancelled' : '');
+  var plainT = title.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  var notes = String(it.notes || '').split('\n').filter(function (l) {
+    if (!l || /^Kind: |^Status: |^Not your link|^Maybe not your/.test(l) || / opens → .* closes$/.test(l)) return false;
+    return plainT.indexOf(l.toLowerCase().replace(/\s+(is due|opens|closes)$/, '').replace(/[^a-z0-9]+/g, '')) < 0;
+  }).slice(0, 2).join(' · ');
+  var when = it.allDay ? 'All day' : it.start === it.end ? 'Due ' + ampm(it.start) : ampm(it.start) + ' – ' + ampm(it.end);
+  var pills = [];
+  if (it.color === '10') pills.push('<span class="pill green">Submitted</span>');
+  if (it.color === '11') pills.push('<span class="pill red">Not submitted · due soon</span>');
+  if (it.status === 'cancelled') pills.push('<span class="pill red">Cancelled</span>');
+  if (/\(group\?\)$/.test(it.title)) pills.push('<span class="pill orange">Which group?</span>');
+  if (it.personal) pills.push('<span class="pill">Personal calendar</span>');
+  if (it.noteCount) pills.push('<span class="pill">📝 ' + it.noteCount + (it.noteCount === 1 ? ' note' : ' notes') + '</span>');
+  if (it.todoCount) pills.push('<span class="pill orange">✅ ' + it.todoCount + ' to do before this</span>');
+  var tap = opts.open ? ' onclick="pick(\'' + it.date + '\')" style="cursor:pointer"' : opts.idx !== undefined ? ' onclick="rowTap(event,' + opts.idx + ')" style="cursor:pointer"' : '';
+  var h = '<div class="' + cls + '"' + tap + '>' +
+    '<div class="tile" style="background:' + k.c + '">' + icon(k.i) + '</div><div class="content">' +
+    '<div class="ttl">' + esc(title) + '</div><div class="meta"><span>' + icon('clock') + esc(when) + '</span>' +
+    (it.venue ? '<span>' + icon('pin') + esc(it.venue) + '</span>' : '') +
+    (it.repeating ? '<span>' + icon('repeat') + esc(it.repeatText) + '</span>' : '') + '</div>' +
+    (notes && !opts.compact ? '<div class="note">' + esc(notes) + '</div>' : '') +
+    (pills.length ? '<div class="pills">' + pills.join('') + '</div>' : '');
+  h += '</div>';
+  if (!it.allDay && !opts.compact) h += '<button class="chk' + (it.done ? ' on' : '') + '" onclick="tick(this,\'' + esc(it.key) + '\')" aria-label="done">' + icon('check') + '</button>';
+  return h + '</div>';
+}
+function tick(btn, key) {
+  var on = !btn.classList.contains('on');
+  btn.classList.toggle('on', on); btn.closest('.row').classList.toggle('done', on);
+  call('appTick', key, on).catch(function () { toast('Could not save'); });
+}
+
+// ---------------- Today ----------------
+function nowHM() { var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function heroHtml(r, timed) {
+  if (r.holiday.length) return '<div class="hero holiday"><div class="k">Holiday</div><div class="t">' + esc(cleanTitle(r.holiday[0])) + '</div><div class="m"><span>' + icon('sun') + 'No classes today</span></div></div>';
+  var open = timed.filter(function (i) { return !i.done && i.status !== 'cancelled' && !i.personal; });
+  var next = r.date === state.today ? open.filter(function (i) { return (i.end || i.start) >= nowHM(); })[0] : open[0];
+  if (!next) return '<div class="hero free"><div class="k">' + (timed.length ? 'All done' : 'Free day') + '</div><div class="t">' + (timed.length ? 'Nice work 🎉' : 'Nothing planned') + '</div>' +
+    '<div class="m"><span>' + icon('plus') + 'Tap + to plan something</span></div></div>';
+  return '<div class="hero"><div class="k">' + (r.date === state.today ? 'Next up' : 'First up') + '</div><div class="t">' + esc(cleanTitle(next.title)) + '</div>' +
+    '<div class="m"><span>' + icon('clock') + (next.start === next.end ? 'Due ' + ampm(next.start) : ampm(next.start) + ' – ' + ampm(next.end)) + '</span>' +
+    (next.venue ? '<span>' + icon('pin') + esc(next.venue) + '</span>' : '') + '</div></div>';
+}
+function loadDay(d) {
+  $('main').innerHTML = skeleton(3);
+  call('appDay', d || '').then(function (r) {
+    if (!state.today) state.today = r.date;
+    if (r.modules) state.modules = r.modules;
+    state.date = r.date;
+    var isToday = r.date === state.today;
+    var pp = parts(r.date);
+    header(MON[pp.m].toUpperCase() + ' ' + pp.y, isToday ? 'Today' : nice(r.date), r.lastRun ? 'Moodle checked ' + r.lastRun.slice(11) : '', true);
+    if (isToday) $('eyebrow').textContent = nice(r.date, true).toUpperCase();
+    drawStrip(r.date, false);
+    count(r.questions); dcount(r.deadlineSoon || 0);
+    var timed = r.items.filter(function (i) { return !(i.allDay && /^🏖️/.test(i.title)) && !/^⚪/.test(i.title); });
+    window.__ev = timed;
+    var h = heroHtml(r, timed);
+    if (timed.length) {
+      var left = timed.filter(function (i) { return !i.done && !i.allDay; }).length;
+      h += '<div class="section">' + timed.length + (timed.length === 1 ? ' item' : ' items') + ' · ' + left + ' to do</div><div class="group">' +
+        timed.map(function (it, i) { return itemRow(it, { idx: i }); }).join('') + '</div>';
+    }
+    $('main').innerHTML = h;
+  }).catch(fail);
+}
+function count(n) { var b = $('qcount'); b.style.display = n > 0 ? 'flex' : 'none'; b.textContent = n; }
+function dcount(n) { var b = $('dcount'); b.style.display = n > 0 ? 'flex' : 'none'; b.textContent = n; }
+
+// ---------------- Calendar (Day / 3 Days / Week / Month) ----------------
+var CV = { day: 1, '3day': 3, week: 7 };
+function loadWeek() { if (!state.cal) state.cal = { view: 'week', anchor: state.date || state.today }; drawCal(); }
+function calRange() {
+  var c = state.cal, a = c.anchor || state.today;
+  if (c.view === 'week') { var m = mondayOf(a); return [m, addDays(m, 6)]; }
+  if (c.view === 'month') { var p = parts(a), first = p.y + '-' + String(p.m + 1).padStart(2, '0') + '-01', st = mondayOf(first); return [st, addDays(st, 41)]; }
+  return [a, addDays(a, CV[c.view] - 1)];
+}
+function calSwitch(v) { state.cal.view = v; drawCal(); }
+function calJump(dir) {
+  var c = state.cal;
+  if (c.view === 'month') { var p = parts(c.anchor); c.anchor = new Date(Date.UTC(p.y, p.m + dir, 1)).toISOString().slice(0, 10); c.sel = c.anchor; }
+  else c.anchor = addDays(c.anchor, dir * CV[c.view]);
+  drawCal();
+}
+function calToday() { state.cal.anchor = state.today; state.cal.sel = state.today; drawCal(); }
+function drawCal() {
+  var c = state.cal, r = calRange();
+  var p = parts(c.view === 'month' ? c.anchor : r[0]), pe = parts(r[1]);
+  var title = c.view === 'month' || p.m === pe.m ? MON[p.m] : MON[p.m].slice(0, 3) + ' – ' + MON[pe.m].slice(0, 3);
+  header(String(p.y), title, '', false);
+  $('hextra').innerHTML = '<div class="calnav"><button class="nav" onclick="calJump(-1)">' + icon('left') + '</button>' +
+    '<div class="segctl">' + [['day', 'Day'], ['3day', '3 Days'], ['week', 'Week'], ['month', 'Month']].map(function (v) {
+      return '<button class="' + (c.view === v[0] ? 'on' : '') + '" onclick="calSwitch(\'' + v[0] + '\')">' + v[1] + '</button>'; }).join('') + '</div>' +
+    '<button class="nav" onclick="calJump(1)">' + icon('right') + '</button></div>' +
+    '<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn small tinted" onclick="calToday()">Today</button></div>';
+  $('main').innerHTML = skeleton(4);
+  var ticket = state.calTicket = (state.calTicket || 0) + 1;
+  call('appRange', r[0], r[1]).then(function (res) {
+    if (ticket !== state.calTicket || state.view !== 'week') return;   // an older answer: ignore it
+    if (!state.today) state.today = res.today;
+    if (res.modules) state.modules = res.modules;
+    state.calItems = res.items;
+    if (c.view === 'month') drawMonth(r[0]); else drawGrid(r[0], CV[c.view]);
+  }).catch(fail);
+}
+function colorOf(it) { return kindOf(it).c; }
+function drawGrid(from, n) {
+  var items = state.calItems, days = [];
+  for (var i = 0; i < n; i++) days.push(addDays(from, i));
+  var HH = n === 1 ? 60 : n === 3 ? 52 : 44;
+  var timed = items.filter(function (e) { return !e.allDay; });
+  var minH = 6;
+  timed.forEach(function (e) { var h = Number(e.start.slice(0, 2)); if (h < minH) minH = h; });
+  var hours = 24 - minH, H = hours * HH;
+  // day header (stays at the top while you scroll)
+  var dh = '<div class="dhead"><div class="g"></div>' + days.map(function (d) {
+    var p = parts(d);
+    return '<div class="c' + (d === state.today ? ' today' : '') + '" onclick="state.date=\'' + d + '\';show(\'today\')"><div class="w">' + DAYS[p.w].slice(0, n === 7 ? 1 : 3) + '</div><div class="n">' + p.d + '</div></div>';
+  }).join('') + '</div>';
+  var oldHead = $('hextra').querySelector('.dhead'); if (oldHead) oldHead.remove();   // never two day rows
+  $('hextra').insertAdjacentHTML('beforeend', dh);
+  window.__ev = items;
+  var h = '';
+  // all-day row
+  var ad = items.filter(function (e) { return e.allDay; });
+  if (ad.length) h += '<div class="allday"><div class="g">all-day</div>' + days.map(function (d) {
+    return '<div class="c">' + ad.filter(function (e) { return e.date === d; }).map(function (e) {
+      var col = colorOf(e);
+      return '<div class="adchip" style="background:color-mix(in srgb,' + col + ' 20%,var(--card));color:' + col + '" onclick="openEv(' + items.indexOf(e) + ')">' + esc(cleanTitle(e.title)) + '</div>';
+    }).join('') + '</div>'; }).join('') + '</div>';
+  // time grid
+  h += '<div class="tgrid"><div class="gut" style="height:' + H + 'px">';
+  for (var hr = minH + 1; hr < 24; hr++) h += '<span style="top:' + ((hr - minH) * HH) + 'px">' + (hr % 12 || 12) + (hr < 12 ? ' AM' : ' PM') + '</span>';
+  h += '</div>';
+  var nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  days.forEach(function (d) {
+    h += '<div class="col' + (d === state.today ? ' today' : '') + '" data-date="' + d + '" style="height:' + H + 'px;background-size:100% ' + HH + 'px" ' +
+      'onclick="if(!window.__noTap)gridTap(event,\'' + d + '\',' + minH + ',' + HH + ')">';
+    var list = timed.filter(function (e) { return e.date === d; }).map(function (e) {
+      var s = toM(e.start), en = e.start === e.end ? s + 25 : Math.max(toM(e.end), s + 15);
+      return { e: e, s: s, en: en };
+    }).sort(function (a, b) { return a.s - b.s || b.en - a.en; });
+    // side by side when they overlap
+    var groups = [], cur = null;
+    list.forEach(function (x) {
+      if (!cur || x.s >= cur.end) { cur = { items: [], end: x.en, cols: [] }; groups.push(cur); }
+      cur.end = Math.max(cur.end, x.en);
+      var k = 0; while (cur.cols[k] > x.s) k++;
+      cur.cols[k] = x.en; x.k = k; cur.items.push(x);
+    });
+    groups.forEach(function (g) {
+      var ncol = g.cols.length;
+      g.items.forEach(function (x) {
+        var e = x.e, col = colorOf(e), top = (x.s - minH * 60) / 60 * HH, ht = Math.max((x.en - x.s) / 60 * HH - 2, 18);
+        var left = (x.k / ncol * 100), width = (100 / ncol);
+        var style = 'top:' + top + 'px;height:' + ht + 'px;left:calc(' + left + '% + 1px);width:calc(' + width + '% - 3px);' +
+          'background:color-mix(in srgb,' + col + ' 18%,var(--card));border-color:' + col + ';color:color-mix(in srgb,' + col + ' 70%,var(--label))';
+        var cls = 'blk' + (n === 7 || ncol > 2 ? ' small' : '') + (e.status === 'cancelled' ? ' cancelled' : '') + (e.start === e.end ? ' dl' : '') +
+          (e.removable ? ' own' : '');
+        var ct = cleanTitle(e.title), code = /^([A-Z]{2,3}\d{4})\b/.exec(ct);
+        var label = n === 7 && code ? '<b>' + code[1] + '</b><span style="display:block">' + esc(String(e.type || '').replace('Tutorial/Practical', 'Tut/Prac').replace('Extra session', 'Extra')) + '</span>'
+          : '<b>' + esc(ct) + '</b><span>' + ampm(e.start) + (e.venue && ht > 50 ? ' · ' + esc(e.venue) : '') + '</span>';
+        h += '<div class="' + cls + '" style="' + style + '" data-i="' + items.indexOf(e) + '" onpointerdown="blkDown(event,' + items.indexOf(e) + ')" ' +
+          'oncontextmenu="return false" onclick="event.stopPropagation();if(!window.__noTap)openEv(' + items.indexOf(e) + ')">' +
+          (e.start === e.end ? icon('doc') + '<b>' + esc(code && n === 7 ? code[1] : ct) + '</b>' : label) + '</div>';
+      });
+    });
+    if (d === state.today && nowM >= minH * 60) {
+      var y = (nowM - minH * 60) / 60 * HH;
+      h += '<div class="nowline" style="top:' + y + 'px"></div>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+  $('main').innerHTML = h;
+  state.grid = { minH: minH, HH: HH };
+  // scroll to 7 AM (or the first event)
+  var first = timed.filter(function (e) { return days.indexOf(e.date) >= 0; }).map(function (e) { return toM(e.start); }).sort(function (a, b) { return a - b; })[0];
+  var target = Math.min(first == null ? 7 * 60 : first - 30, 7 * 60);
+  window.scrollTo(0, Math.max(0, (target - minH * 60) / 60 * HH));
+}
+function toM(hm) { var p = String(hm).split(':').map(Number); return p[0] * 60 + p[1]; }
+function gridTap(ev, d, minH, HH) {
+  var y = ev.offsetY, m = Math.round((minH * 60 + y / HH * 60) / 15) * 15;
+  var hm = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  state.task = newTask(); state.task.mode = 'fixed'; state.task.date = d; state.task.start = hm;
+  show('add');
+  toast('New task on ' + nice(d) + ' at ' + ampm(hm));
+}
+function drawMonth(from) {
+  var c = state.cal, items = state.calItems, p0 = parts(c.anchor);
+  if (!c.sel || parts(c.sel).m !== p0.m) c.sel = (state.today && parts(state.today).m === p0.m && parts(state.today).y === p0.y) ? state.today : c.anchor;
+  window.__ev = items;
+  var h = '<div class="mgrid">' + ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(function (x) { return '<div class="wl">' + x + '</div>'; }).join('');
+  for (var i = 0; i < 42; i++) {
+    var d = addDays(from, i), p = parts(d);
+    var di = items.filter(function (e) { return e.date === d; });
+    var cols = []; di.forEach(function (e) { var k = colorOf(e); if (cols.indexOf(k) < 0) cols.push(k); });
+    h += '<div class="mcell' + (p.m !== p0.m ? ' other' : '') + (d === state.today ? ' today' : '') + (d === c.sel ? ' sel' : '') + '" onclick="monthPick(\'' + d + '\')">' +
+      '<div class="n">' + p.d + '</div><div class="dots">' + cols.slice(0, 3).map(function (k) { return '<i style="background:' + k + '"></i>'; }).join('') + '</div></div>';
+  }
+  h += '</div><div id="mlist"></div>';
+  $('main').innerHTML = h;
+  drawMonthList();
+}
+function monthPick(d) {
+  state.cal.sel = d;
+  Array.prototype.forEach.call(document.querySelectorAll('.mcell'), function (el, i) { el.classList.toggle('sel', el.getAttribute('onclick').indexOf(d) >= 0); });
+  drawMonthList();
+}
+function drawMonthList() {
+  var d = state.cal.sel, items = state.calItems.filter(function (e) { return e.date === d; });
+  $('mlist').innerHTML = '<div class="section">' + nice(d, true) + '</div>' + (items.length
+    ? '<div class="group">' + items.map(function (it) { return itemRow(it, { compact: true }).replace('<div class="row', '<div onclick="openEv(' + state.calItems.indexOf(it) + ')" style="cursor:pointer" class="row'); }).join('') + '</div>'
+    : '<div class="group"><div class="row" onclick="gridTapDay(\'' + d + '\')" style="cursor:pointer"><div class="tile" style="background:var(--green)">' + icon('plus') + '</div><div class="content"><div class="ttl" style="font-weight:500">Free day — tap to add a task</div></div></div></div>');
+}
+function gridTapDay(d) { state.task = newTask(); state.task.mode = 'fixed'; state.task.date = d; show('add'); }
+function openEv(i) {
+  var it = window.__ev[i]; if (!it) return;
+  if (it.id && !it.personal) return openEvPage(it.id, it.date);
+  var k = kindOf(it);
+  openSheet('<div class="top" style="display:flex;gap:12px;align-items:flex-start"><div class="tile" style="background:' + k.c + ';width:44px;height:44px;border-radius:11px">' + icon(k.i) + '</div>' +
+    '<div><h3 style="margin:2px 0 4px">' + esc(cleanTitle(it.title)) + '</h3><div class="meta"><span>' + icon('calendar') + nice(it.date, true) + '</span></div>' +
+    '<div class="meta"><span>' + icon('clock') + (it.allDay ? 'All day' : it.start === it.end ? 'Due ' + ampm(it.start) : ampm(it.start) + ' – ' + ampm(it.end)) + '</span></div>' +
+    (it.venue ? '<div class="meta"><span>' + icon('pin') + esc(it.venue) + '</span></div>' : '') +
+    (it.repeating ? '<div class="meta"><span>' + icon('repeat') + esc(it.repeatText) + '</span></div>' : '') + '</div></div>' +
+    (it.notes ? '<div class="note" style="white-space:pre-line;margin:6px 0 14px">' + esc(String(it.notes).split('\n').filter(function (l) { return !/^Kind: /.test(l); }).join('\n')) + '</div>' : '') +
+    '<div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">' +
+    (it.movable ? '<button class="btn tinted" onclick="closeSheet();moveTask(\'' + esc(it.id) + '\')">Move</button>' : '') +
+    (it.removable ? '<button class="btn red" onclick="closeSheet();removeTask(\'' + esc(it.id) + '\',' + (it.repeating ? 1 : 0) + ')">' + (it.repeating ? 'Remove all repeats' : 'Remove') + '</button>' : '') +
+    (state.view === 'today' ? '' : '<button class="btn gray" onclick="closeSheet();state.date=\'' + it.date + '\';show(\'today\')">Open this day</button>') + '</div>' +
+    (it.id && !it.personal ? '<div id="evnotes" style="margin-top:18px"><div class="skel" style="height:60px"></div></div>' : ''));
+  if (it.id && !it.personal) loadEvNotes(it.id, it.date);
+}
+function rowTap(e, i) { if (e.target.closest('button,a')) return; openEv(i); }
+
+
+// ---------------- drag and drop (press and hold a task, then drag) ----------------
+var drag = null;
+document.addEventListener('touchmove', function (e) { if (drag && drag.on) e.preventDefault(); }, { passive: false });
+function blkDown(ev, i) {
+  if (ev.button > 0) return;
+  var it = window.__ev[i], el = ev.currentTarget, x0 = ev.clientX, y0 = ev.clientY;
+  var timer = setTimeout(function () {
+    stop();
+    window.__noTap = true; setTimeout(function () { window.__noTap = false; }, 700);   // a long press is not a tap
+    if (!it.removable) { toast('University events come from Moodle and your timetable — they can’t be moved here'); return; }
+    startDrag(el, it, x0, y0);
+  }, 380);
+  function mv(e) { if (Math.abs(e.clientX - x0) > 8 || Math.abs(e.clientY - y0) > 8) stop(); }
+  function stop() { clearTimeout(timer); document.removeEventListener('pointermove', mv); document.removeEventListener('pointerup', stop); document.removeEventListener('pointercancel', stop); }
+  document.addEventListener('pointermove', mv); document.addEventListener('pointerup', stop); document.addEventListener('pointercancel', stop);
+}
+function startDrag(el, it, x, y) {
+  var g = state.grid, r = el.getBoundingClientRect();
+  var cols = Array.prototype.map.call(document.querySelectorAll('.tgrid .col'), function (c) { return c; });
+  drag = { on: true, el: el, it: it, dur: toM(it.end) - toM(it.start), offY: y - r.top, cols: cols, date: it.date, start: it.start, g: g };
+  el.classList.add('dragging');
+  if (navigator.vibrate) navigator.vibrate(12);
+  var lab = document.createElement('div'); lab.className = 'draglabel'; lab.id = 'draglabel'; document.body.appendChild(lab);
+  dragMove({ clientX: x, clientY: y });
+  document.addEventListener('pointermove', dragMove);
+  document.addEventListener('pointerup', dragEnd);
+  document.addEventListener('pointercancel', dragCancel);
+}
+function dragMove(e) {
+  if (!drag) return;
+  var g = drag.g, col = null;
+  drag.cols.forEach(function (c) { var b = c.getBoundingClientRect(); if (e.clientX >= b.left && e.clientX < b.right) col = c; });
+  if (!col) col = drag.el.parentNode;
+  var top = col.getBoundingClientRect().top;
+  var m = g.minH * 60 + (e.clientY - drag.offY - top) / g.HH * 60;
+  m = Math.max(0, Math.min(24 * 60 - drag.dur, Math.round(m / 15) * 15));
+  if (drag.el.parentNode !== col) col.appendChild(drag.el);
+  drag.cols.forEach(function (c) { c.classList.toggle('target', c === col); });
+  drag.el.style.top = ((m - g.minH * 60) / 60 * g.HH) + 'px';
+  drag.el.style.left = '1px'; drag.el.style.width = 'calc(100% - 3px)';
+  drag.date = col.getAttribute('data-date');
+  drag.start = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  $('draglabel').textContent = nice(drag.date) + ' · ' + ampm(drag.start) + ' – ' + ampm(endOf(drag.start, drag.dur));
+  var sp = drag.el.querySelector('span'); if (sp && !drag.el.classList.contains('small')) sp.textContent = ampm(drag.start);
+  if (e.clientY < 150) window.scrollBy(0, -10);
+  if (e.clientY > window.innerHeight - 130) window.scrollBy(0, 10);
+}
+function dragOff() {
+  document.removeEventListener('pointermove', dragMove); document.removeEventListener('pointerup', dragEnd); document.removeEventListener('pointercancel', dragCancel);
+  var l = $('draglabel'); if (l) l.remove();
+  window.__noTap = true; setTimeout(function () { window.__noTap = false; }, 400);
+}
+function dragCancel() { dragOff(); drag = null; drawCal(); }
+function dragEnd() {
+  dragOff();
+  var d = drag; drag = null;
+  if (!d || (d.date === d.it.date && d.start === d.it.start)) { drawCal(); return; }
+  if (d.it.repeating) {
+    openSheet('<h3>Move “' + esc(cleanTitle(d.it.title)) + '”?</h3><div class="hint" style="margin:-6px 0 16px">This is a repeating task (' + esc(d.it.repeatText) + '). ' +
+      'New time: ' + nice(d.date) + ', ' + ampm(d.start) + '.</div>' +
+      '<button class="btn" onclick="closeSheet();doDragMove(\'one\')">This event only</button><div style="height:10px"></div>' +
+      '<button class="btn tinted" onclick="closeSheet();doDragMove(\'all\')">All events</button><div style="height:10px"></div>' +
+      '<button class="btn gray" onclick="closeSheet();drawCal()">Cancel</button>');
+    window.__onSheetClose = function () { drawCal(); };
+    window.__dm = d;
+    return;
+  }
+  window.__dm = d; doDragMove(null);
+}
+function doDragMove(scope, force) {
+  var d = window.__dm;
+  call('appDragMove', d.it.id, d.it.date, { date: d.date, start: d.start }, scope, !!force).then(function (r) {
+    if (!r.ok) {
+      confirmSheet('This time overlaps', 'It overlaps: ' + r.clash.map(niceClash).join('; ') + (r.more ? ' and ' + r.more + ' more' : '') + '.', 'Move anyway',
+        function () { doDragMove(scope, true); }, function () { drawCal(); });
+      return;
+    }
+    var when = nice(d.date) + ', ' + ampm(d.start);
+    if (r.overlaps && r.overlaps.length) {
+      state.resolve = { moved: true, add: { id: d.it.id, title: cleanTitle(d.it.title), date: d.date, start: d.start, end: endOf(d.start, d.dur), repeatText: scope === 'all' ? (r.repeatText || 'x') : '' },
+        items: r.overlaps };
+      drawResolve();
+    } else {
+      toast(scope === 'all' ? 'All repeats moved · ' + (r.repeatText || '') : 'Moved to ' + when);
+      drawCal();
+    }
+  }).catch(function (e) { toast(e.message || e); drawCal(); });
+}
+
+// ---------------- Add a task ----------------
+var QUICK = [[15, '15 min'], [30, '30 min'], [60, '1 hr'], [120, '2 hr'], [180, '3 hr']];
+var KINDS = [['personal', 'Personal', 'heart'], ['study', 'Study', 'book'], ['exercise', 'Exercise', 'run'], ['other', 'Other', 'sparkle']];
+var SD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function durText(m) { var h = Math.floor(m / 60), mm = m % 60; return (h ? h + ' hr' : '') + (h && mm ? ' ' : '') + (mm ? mm + ' min' : '') || '0 min'; }
+function endOf(start, mins) { var p = start.split(':').map(Number), t = Math.min(p[0] * 60 + p[1] + mins, 23 * 60 + 59); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
+function describeRule(r) {
+  if (!r || r.freq === 'none') return 'Never';
+  var n = r.interval || 1, s;
+  if (r.freq === 'daily') s = n === 1 ? 'Every day' : 'Every ' + n + ' days';
+  if (r.freq === 'monthly') s = n === 1 ? 'Every month' : 'Every ' + n + ' months';
+  if (r.freq === 'weekly') {
+    var d = (r.days || []).slice().sort(function (a, b) { return (a + 6) % 7 - (b + 6) % 7; });
+    s = (n === 1 ? 'Every week' : 'Every ' + n + ' weeks') + (d.length ? ' on ' + d.map(function (x) { return SD[x]; }).join(', ') : '');
+  }
+  var e = r.end || {};
+  if (e.type === 'until' && e.until) s += ', until ' + nice(e.until);
+  if (e.type === 'count') s += ', ' + e.count + (e.count === 1 ? ' time' : ' times');
+  return s;
+}
+function renderAdd() {
+  header('NEW TASK', 'Add a task', state.task.mode === 'find' ? 'I will find the best free time for you' : 'Put it at the time you know', false);
+  var t = state.task, find = t.mode === 'find';
+  if (find && t.durationMin === 0) t.durationMin = 60;     // "find a time" needs a real length
+  var dl = !find && t.durationMin === 0;
+  var quickOn = dl || QUICK.some(function (q) { return q[0] === t.durationMin; });
+  $('main').innerHTML =
+    '<div class="group" style="margin-bottom:14px"><div class="row importrow" onclick="openImport()" style="cursor:pointer">' +
+      '<div class="tile" style="background:linear-gradient(135deg,#5E5CE6,#0A84FF)">' + icon('table') + '</div>' +
+      '<div class="content"><div class="ttl">Import timetable</div><div class="meta">From a PDF or a photo · once per semester</div></div>' +
+      '<span class="value">' + icon('chev') + '</span></div>' +
+      '<div class="row importrow" onclick="show(\'practical\')" style="cursor:pointer;border-top:.5px solid var(--sep)">' +
+      '<div class="tile" style="background:var(--teal)">' + icon('flask') + '</div>' +
+      '<div class="content"><div class="ttl">Import practical sheet</div><div class="meta">Finds your index and group · PDF or photo</div></div>' +
+      '<span class="value">' + icon('chev') + '</span></div></div>' +
+    '<div class="segctl"><button class="' + (find ? 'on' : '') + '" onclick="setMode(\'find\')">Find a time for me</button>' +
+      '<button class="' + (!find ? 'on' : '') + '" onclick="setMode(\'fixed\')">I know the time</button></div>' +
+    '<div class="group" style="margin-top:10px">' +
+      '<div class="field"><div class="tile" style="background:var(--blue)">' + icon('sparkle') + '</div><input id="f-title" class="bigin" placeholder="What do you want to do?" value="' + esc(t.title || '') + '"></div>' +
+    '</div>' +
+    (find ? '' :
+      '<div class="section">When?</div><div class="group">' +
+        '<div class="field"><div class="tile" style="background:var(--red)">' + icon('calendar') + '</div><label>Date</label><input id="x-date" type="date" value="' + esc(t.date || state.date || '') + '" onchange="keep();showEnd()"></div>' +
+        '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('clock') + '</div><label id="x-tlabel">' + (dl ? 'Due at' : 'Starts') + '</label><input id="x-time" type="time" value="' + esc(t.start || '') + '" onchange="keep();showEnd()"></div>' +
+      '</div>') +
+    '<div class="section">How long?</div><div class="group">' +
+      '<div class="field tap" onclick="openWheel()"><div class="tile" style="background:var(--orange)">' + icon('timer') + '</div><label>Duration</label>' +
+        '<span class="value" id="durVal">' + (dl ? 'Deadline' : durText(t.durationMin)) + icon('chev') + '</span></div>' +
+      '<div class="seg" id="seg-dur">' + QUICK.map(function (q) { return '<button class="chip' + (t.durationMin === q[0] ? ' on' : '') + '" onclick="setDur(' + q[0] + ')">' + q[1] + '</button>'; }).join('') +
+        '<button class="chip' + (quickOn ? '' : ' on') + '" onclick="openWheel()">' + icon('timer') + 'Custom</button>' +
+        (find ? '' : '<button class="chip' + (dl ? ' on' : '') + '" onclick="setDur(0)">' + icon('flag') + 'Deadline</button>') + '</div>' +
+      (find ? '' : '<div class="hint" id="endHint" style="margin:-6px 16px 12px 62px"></div>') +
+    '</div>' +
+    '<div class="section">Repeat</div><div class="group">' +
+      '<div class="field tap" onclick="openRepeat()"><div class="tile" style="background:var(--teal)">' + icon('repeat') + '</div><label>Repeat</label>' +
+        '<span class="value" id="repVal" style="max-width:58%;text-align:right">' + esc(describeRule(t.repeat)) + icon('chev') + '</span></div>' +
+    '</div>' +
+    '<div class="section">What kind?</div><div class="group"><div class="seg" id="seg-kind" style="padding:14px">' +
+      KINDS.map(function (k) { return '<button class="chip' + (t.category === k[0] ? ' on' : '') + '" onclick="setKind(\'' + k[0] + '\')">' + icon(k[2]) + k[1] + '</button>'; }).join('') + '</div></div>' +
+    (find ?
+      '<div class="section">Between (optional)</div><div class="group">' +
+        '<div class="field"><div class="tile" style="background:var(--red)">' + icon('calendar') + '</div><label>Not before</label><input id="f-from" type="date" value="' + esc(t.from || '') + '"></div>' +
+        '<div class="field"><div class="tile" style="background:var(--purple)">' + icon('calendar') + '</div><label>Before</label><input id="f-dl" type="date" value="' + esc(t.deadline || '') + '"></div>' +
+      '</div>' : '') +
+    '<div class="section">Details (optional)</div><div class="group">' +
+      '<div class="field"><div class="tile" style="background:var(--green)">' + icon('pin') + '</div><input id="f-venue" placeholder="Location" value="' + esc(t.venue || '') + '"></div>' +
+      '<div class="field" style="align-items:flex-start"><div class="tile" style="background:var(--gray)">' + icon('doc') + '</div><textarea id="f-notes" placeholder="Notes">' + esc(t.notes || '') + '</textarea></div>' +
+    '</div>' +
+    '<div style="margin-top:22px">' + (find
+      ? '<button class="btn grad" id="findBtn" onclick="findTimes()">' + icon('sparkle') + 'Find the best times</button>'
+      : '<button class="btn grad" id="fixBtn" onclick="addFixed()">' + icon('check') + 'Add to calendar</button>') + '</div>' +
+    '<div id="results"></div>';
+  showEnd();
+}
+function keep() {
+  var t = state.task;
+  if ($('f-title')) {
+    t.title = $('f-title').value.trim(); t.venue = $('f-venue').value.trim(); t.notes = $('f-notes').value.trim();
+    if ($('f-from')) { t.from = $('f-from').value; t.deadline = $('f-dl').value; }
+    if ($('x-date')) { t.date = $('x-date').value; t.start = $('x-time').value; }
+  }
+  return t;
+}
+function showEnd() {
+  var h = $('endHint'), t = state.task;
+  if (h && t.durationMin === 0) h.textContent = (t.start ? 'Due at ' + ampm(t.start) + '. ' : '') + 'A deadline is a moment: it blocks no time. You get a reminder 1 day and 2 hours before.';
+  else if (h) h.textContent = t.start ? 'Ends at ' + ampm(endOf(t.start, t.durationMin)) : 'Pick a start time to see when it ends';
+}
+function setMode(m) { keep(); state.task.mode = m; renderAdd(); window.scrollTo(0, 0); }
+function setDur(m) {
+  keep(); state.task.durationMin = m;
+  $('durVal').innerHTML = (m === 0 ? 'Deadline' : durText(m)) + icon('chev');
+  var chips = $('seg-dur').children, quick = m === 0;
+  for (var i = 0; i < QUICK.length; i++) { chips[i].classList.toggle('on', QUICK[i][0] === m); if (QUICK[i][0] === m) quick = true; }
+  chips[QUICK.length].classList.toggle('on', !quick);
+  if (chips[QUICK.length + 1]) chips[QUICK.length + 1].classList.toggle('on', m === 0);
+  if ($('x-tlabel')) $('x-tlabel').textContent = m === 0 ? 'Due at' : 'Starts';
+  if (m === 0 && $('x-time') && !$('x-time').value) { $('x-time').value = '23:59'; state.task.start = '23:59'; }   // most deadlines are at 11:59 PM
+  showEnd();
+}
+function setKind(k) { keep(); state.task.category = k; Array.prototype.forEach.call($('seg-kind').children, function (b, i) { b.classList.toggle('on', KINDS[i][0] === k); }); }
+
+// ----- duration wheel (like setting a timer) -----
+function wheelCol(id, values, label, sel) {
+  return '<div class="col" id="' + id + '"><div class="pad" style="height:88px"></div>' +
+    values.map(function (v) { return '<div>' + v + ' ' + label + '</div>'; }).join('') + '<div class="pad" style="height:88px"></div></div>';
+}
+var HOURS = []; for (var hh = 0; hh <= 16; hh++) HOURS.push(hh);
+var MINS = []; for (var mm = 0; mm < 60; mm += 5) MINS.push(mm);
+function openWheel() {
+  keep();
+  var m = state.task.durationMin;
+  openSheet('<h3>How long?</h3><div class="wheel"><div class="band"></div>' + wheelCol('wh-h', HOURS, 'hr') + wheelCol('wh-m', MINS, 'min') + '</div>' +
+    '<button class="btn" onclick="setWheel()">Set ' + '<span id="whTxt">' + durText(m) + '</span></button>');
+  var h = $('wh-h'), mi = $('wh-m');
+  h.scrollTop = Math.floor(m / 60) * 44; mi.scrollTop = Math.round((m % 60) / 5) * 44;
+  var upd = function () { $('whTxt').textContent = durText(wheelVal()); };
+  h.addEventListener('scroll', upd); mi.addEventListener('scroll', upd);
+}
+function wheelVal() {
+  var h = HOURS[Math.max(0, Math.min(HOURS.length - 1, Math.round($('wh-h').scrollTop / 44)))];
+  var m = MINS[Math.max(0, Math.min(MINS.length - 1, Math.round($('wh-m').scrollTop / 44)))];
+  return h * 60 + m;
+}
+function setWheel() {
+  var v = wheelVal();
+  if (v < 5) { toast('Choose at least 5 minutes'); return; }
+  closeSheet(); setDur(v);
+}
+
+// ----- repeat picker -----
+var rp = null;   // the rule being edited
+function openRepeat() {
+  keep();
+  rp = JSON.parse(JSON.stringify(state.task.repeat || { freq: 'none' }));
+  if (!rp.interval) rp.interval = 1;
+  if (!rp.days) rp.days = [];
+  if (!rp.end) rp.end = { type: 'never' };
+  drawRepeat();
+}
+function presetOf(r) {
+  if (r.freq === 'none') return 'none';
+  if (r.end.type === 'never' && !(r.days || []).length) {
+    if (r.freq === 'daily' && r.interval === 1) return 'day';
+    if (r.freq === 'weekly' && r.interval === 1) return 'week';
+    if (r.freq === 'weekly' && r.interval === 2) return '2week';
+    if (r.freq === 'monthly' && r.interval === 1) return 'month';
+  }
+  return 'custom';
+}
+function drawRepeat() {
+  var p = presetOf(rp);
+  var PRE = [['none', 'Never'], ['day', 'Every day'], ['week', 'Every week'], ['2week', 'Every 2 weeks'], ['month', 'Every month'], ['custom', 'Custom…']];
+  var unit = { daily: 'Days', weekly: 'Weeks', monthly: 'Months' };
+  var h = '<h3>Repeat</h3><div class="summary">' + icon('repeat') + esc(describeRule(rp)) + '</div>' +
+    '<div class="group opts">' + PRE.map(function (o) {
+      return '<div class="row' + (p === o[0] ? ' sel' : '') + '" onclick="preset(\'' + o[0] + '\')"><div class="content" style="font-size:17px">' + o[1] + '</div><span class="tickmark">' + icon('check') + '</span></div>';
+    }).join('') + '</div>';
+  if (p === 'custom' || rp._custom) {
+    h += '<div class="section">Custom</div><div class="group" style="padding:12px 14px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:17px">Every</span>' +
+        '<span class="stepper"><button onclick="rpStep(-1)">−</button><b>' + rp.interval + '</b><button onclick="rpStep(1)">+</button></span></div>' +
+      '<div class="segctl" style="margin:12px 0 0">' + ['daily', 'weekly', 'monthly'].map(function (f) {
+          return '<button class="' + (rp.freq === f ? 'on' : '') + '" onclick="rpFreq(\'' + f + '\')">' + unit[f] + '</button>'; }).join('') + '</div>' +
+      (rp.freq === 'weekly' ? '<div class="hint" style="margin:14px 0 6px">On these days</div><div class="wd">' +
+        [1, 2, 3, 4, 5, 6, 0].map(function (d) { return '<button class="' + (rp.days.indexOf(d) >= 0 ? 'on' : '') + '" onclick="rpDay(' + d + ')">' + SD[d].slice(0, 1) + '</button>'; }).join('') + '</div>' : '') +
+      '</div>';
+  }
+  if (rp.freq !== 'none') {
+    h += '<div class="section">Ends</div><div class="group" style="padding:12px 14px"><div class="segctl" style="margin:0">' +
+      [['never', 'Never'], ['until', 'On a date'], ['count', 'After']].map(function (e) {
+        return '<button class="' + (rp.end.type === e[0] ? 'on' : '') + '" onclick="rpEnd(\'' + e[0] + '\')">' + e[1] + '</button>'; }).join('') + '</div>' +
+      (rp.end.type === 'until' ? '<div class="field" style="padding:12px 0 0"><label>Last day</label><input type="date" value="' + esc(rp.end.until || '') + '" onchange="rp.end.until=this.value;drawRepeat()"></div>' : '') +
+      (rp.end.type === 'count' ? '<div class="field" style="padding:12px 0 0"><label>Number of times</label><span class="stepper"><button onclick="rpCount(-1)">−</button><b>' + rp.end.count +
+        '</b><button onclick="rpCount(1)">+</button></span></div>' : '') + '</div>';
+  }
+  h += '<div style="margin-top:18px"><button class="btn" onclick="saveRepeat()">Done</button></div>';
+  openSheet(h);
+}
+function preset(k) {
+  var m = { none: { freq: 'none' }, day: { freq: 'daily', interval: 1 }, week: { freq: 'weekly', interval: 1 }, '2week': { freq: 'weekly', interval: 2 }, month: { freq: 'monthly', interval: 1 } };
+  if (k === 'custom') { if (rp.freq === 'none') { rp.freq = 'weekly'; rp.interval = 1; } rp._custom = true; }
+  else { rp = Object.assign({ interval: 1, days: [], end: { type: 'never' } }, m[k]); }
+  drawRepeat();
+}
+function rpStep(n) { rp.interval = Math.max(1, Math.min(99, rp.interval + n)); rp._custom = true; drawRepeat(); }
+function rpFreq(f) { rp.freq = f; if (f !== 'weekly') rp.days = []; rp._custom = true; drawRepeat(); }
+function rpDay(d) { var i = rp.days.indexOf(d); if (i >= 0) rp.days.splice(i, 1); else rp.days.push(d); rp._custom = true; drawRepeat(); }
+function rpEnd(t) { rp.end = { type: t, until: rp.end.until || '', count: rp.end.count || 10 }; drawRepeat(); }
+function rpCount(n) { rp.end.count = Math.max(1, Math.min(200, (rp.end.count || 10) + n)); drawRepeat(); }
+function saveRepeat() {
+  if (rp.end.type === 'until' && !rp.end.until) { toast('Choose the last day'); return; }
+  delete rp._custom;
+  state.task.repeat = rp; closeSheet();
+  $('repVal').innerHTML = esc(describeRule(rp)) + icon('chev');
+}
+
+function whyIcon(w) { return /risky|overlap/.test(w) ? icon('alert') : icon('check'); }
+function optionsHtml(opts, verb, fn) {
+  if (!opts.length) return '<div class="warn" style="margin-top:12px">No free time found on these days. Try a shorter time or other dates.</div>';
+  return opts.map(function (o, i) {
+    var p = parts(o.date);
+    return '<div class="opt' + (i === 0 ? ' best' : '') + '" style="animation-delay:' + (i * 70) + 'ms">' +
+      (i === 0 ? '<div class="badge">' + icon('star') + 'Best match</div>' : '') +
+      '<div class="day">' + DAYS[p.w] + ', ' + p.d + ' ' + MON[p.m] + '</div>' +
+      '<div class="time">' + ampm(o.start) + ' – ' + ampm(o.end) + '</div>' +
+      '<ul class="why">' + o.why.map(function (w) { return '<li>' + whyIcon(w) + esc(w.charAt(0).toUpperCase() + w.slice(1)) + '</li>'; }).join('') + '</ul>' +
+      '<button class="btn' + (i === 0 ? '' : ' tinted') + '" onclick="' + fn + '(\'' + o.date + '\',\'' + o.start + '\',this)">' + verb + '</button></div>';
+  }).join('');
+}
+function findTimes() {
+  var t = keep();
+  if (!t.title) { toast('Type what you want to do'); $('f-title').focus(); return; }
+  $('findBtn').disabled = true;
+  $('results').innerHTML = '<div class="section big">Best free times</div>' + skeleton(3);
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  call('appSuggest', t).then(function (r) {
+    $('findBtn').disabled = false;
+    $('results').innerHTML = '<div class="section big">Best free times</div>' + optionsHtml(r.options, 'Add to calendar', 'pickAdd');
+  }).catch(function (e) { $('findBtn').disabled = false; $('results').innerHTML = '<div class="warn" style="margin-top:12px">' + esc(e.message || e) + '</div>'; });
+}
+function pickAdd(date, start, btn, force) {
+  if (btn) btn.disabled = true;
+  var t = keep();
+  call('appAddTask', t, { date: date, start: start }, !!force).then(function (r) {
+    if (btn) btn.disabled = false;
+    if (!r.ok) {
+      confirmSheet('This time overlaps', 'It overlaps: ' + r.clash.map(niceClash).join('; ') + (r.more ? ' and ' + r.more + ' more' : '') + '.', 'Add anyway', function () { pickAdd(date, start, null, true); });
+      return;
+    }
+    state.lastAdd = { id: r.id, title: t.title, date: r.date, start: r.start, end: r.end, venue: t.venue, repeatText: r.repeatText };
+    state.task = newTask();
+    if (r.overlaps && r.overlaps.length) { state.resolve = { add: state.lastAdd, items: r.overlaps }; drawResolve(); }
+    else successSheet(state.lastAdd);
+  }).catch(function (e) { if (btn) btn.disabled = false; toast(e.message || e); });
+}
+/** "Tue 2027-01-26 13:15-16:15 ME2121 Practical" -> "ME2121 Practical (Tue 26 Jan, 1:15 PM – 4:15 PM)" */
+function niceClash(c) {
+  var m = /^(?:\w{3} (\d{4}-\d{2}-\d{2}) )?(\d{2}:\d{2})-(\d{2}:\d{2}) (.*)$/.exec(c);
+  if (!m) return c;
+  return cleanTitle(m[4]) + ' (' + (m[1] ? nice(m[1]) + ', ' : '') + ampm(m[2]) + ' – ' + ampm(m[3]) + ')';
+}
+function addFixed() {
+  var t = keep();
+  if (!t.title) { toast('Type what you want to do'); $('f-title').focus(); return; }
+  if (!t.date || !t.start) { toast(t.durationMin === 0 ? 'Pick the date and the time it is due' : 'Pick the date and the start time'); return; }
+  pickAdd(t.date, t.start, $('fixBtn'));
+}
+
+
+// ---------------- Import timetable ----------------
+var TT_DAYNAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function openImport() {
+  keep();
+  header('TIMETABLE', 'Import timetable', 'From a PDF or a photo', false);
+  window.scrollTo(0, 0);
+  $('main').innerHTML =
+    '<div class="drop"><div class="bigicon">' + icon('upload') + '</div>' +
+      '<div class="ttl" style="font-size:20px">Choose your timetable</div>' +
+      '<div class="note" style="margin:6px 0 16px">The PDF from the faculty, or a clear photo / screenshot of it.</div>' +
+      '<label class="btn grad" style="display:inline-flex;width:auto;padding:13px 24px">' + icon('upload') + 'Choose PDF or photo' +
+        '<input type="file" id="ttFile" accept="application/pdf,image/*" style="display:none" onchange="ttPicked(this)"></label>' +
+      '<ul class="bul">' +
+        '<li>' + icon('check') + 'Only the modules you are enrolled in on Moodle are kept</li>' +
+        '<li>' + icon('check') + 'Union Hour, Research Hour and lunch stay free</li>' +
+        '<li>' + icon('check') + 'You check every class before anything is added</li>' +
+        '<li>' + icon('check') + 'Holidays are skipped automatically</li>' +
+      '</ul></div>' +
+    '<div class="hint" style="margin-top:14px">Hard to read? You can also type it in the "Timetable" tab of your sheet and use the menu Uni Planner → 9.</div>' +
+    '<div style="margin-top:16px"><button class="btn gray" onclick="show(\'add\')">Back</button></div>';
+}
+function ttPicked(input) {
+  var f = input.files && input.files[0];
+  if (!f) return;
+  $('main').innerHTML = '<div class="reading"><div class="spinner"></div><div class="ttl">Reading your timetable…</div>' +
+    '<div class="note" style="margin-top:6px">' + esc(f.name) + '<br>This takes about 20 seconds.</div></div>';
+  var send = function (b64, mime) {
+    call('appTimetablePreview', b64, mime).then(function (r) { state.tt = r; drawTTReview(); })
+      .catch(function (e) { $('main').innerHTML = '<div class="warn">' + esc(e.message || e) + '</div><div style="margin-top:14px"><button class="btn" onclick="openImport()">Try again</button></div>'; });
+  };
+  readPicked(f, send);
+}
+/** Read a chosen file as base64. Big phone photos are made smaller first (faster, and clear enough). */
+function readPicked(f, send) {
+  var rd = new FileReader();
+  if (/^image\//.test(f.type)) {
+    // make big phone photos smaller first (faster, and clear enough for reading)
+    rd.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, 2200 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        send(cv.toDataURL('image/jpeg', 0.88).split(',')[1], 'image/jpeg');
+      };
+      img.src = rd.result;
+    };
+  } else {
+    rd.onload = function () { send(String(rd.result).split(',')[1], 'application/pdf'); };
+  }
+  rd.readAsDataURL(f);
+}
+function ttKind(c) { return /Practical/.test(c.type) ? { i: 'flask', c: 'var(--teal)' } : { i: 'lecture', c: 'var(--indigo)' }; }
+function drawTTReview() {
+  var r = state.tt, m = r.meta || {};
+  header('CHECK BEFORE ADDING', 'Your timetable', [m.semester, m.group].filter(Boolean).join(' · '), false);
+  var on = r.classes.filter(function (c) { return c.on; }).length;
+  var h = '<div class="group">' +
+    '<div class="field"><div class="tile" style="background:var(--green)">' + icon('calendar') + '</div><label>Semester starts</label><input type="date" id="tt-s" value="' + esc(m.start || '') + '" onchange="state.tt.meta.start=this.value;drawTTReview()"></div>' +
+    '<div class="field"><div class="tile" style="background:var(--red)">' + icon('calendar') + '</div><label>Semester ends</label><input type="date" id="tt-e" value="' + esc(m.end || '') + '" onchange="state.tt.meta.end=this.value;drawTTReview()"></div></div>';
+  if (m.end && r.today && m.end < r.today) h += '<div class="warn" style="margin-top:10px">This semester has already ended, so nothing will be added. (To try it, change the end date.)</div>';
+  if (r.note) h += '<div class="warn" style="margin-top:10px;color:var(--orange);background:color-mix(in srgb,var(--orange) 12%,transparent)">' + esc(r.note) + '</div>';
+  if (r.enrolledKnown) h += '<div class="hint" style="margin-top:10px">Showing only the modules you are enrolled in on Moodle.</div>';
+  h += '<div class="hint">Practicals and “either / or” classes are off — your practical sheets add your exact practical dates. Turn any class on or off. Tap a class to fix it.</div>';
+  [1, 2, 3, 4, 5, 6, 0].forEach(function (d) {
+    var list = r.classes.map(function (c, i) { c._i = i; return c; }).filter(function (c) { return c.day === d; });
+    var free = (r.free || []).filter(function (f) { return f.day === d; });
+    if (!list.length && !free.length) return;
+    h += '<div class="section">' + TT_DAYNAME[d] + '</div><div class="group">';
+    list.forEach(function (c) {
+      var k = ttKind(c);
+      h += '<div class="row' + (c.on ? '' : ' off') + '"><div class="tile" style="background:' + k.c + '" onclick="ttEdit(' + c._i + ')">' + icon(k.i) + '</div>' +
+        '<div class="content" onclick="ttEdit(' + c._i + ')" style="cursor:pointer"><div class="ttl">' + esc(c.code) + ' ' + esc(c.type) + '</div>' +
+        '<div class="meta"><span>' + icon('clock') + ampm(c.start) + ' – ' + ampm(c.end) + '</span>' + (c.venue ? '<span>' + icon('pin') + esc(c.venue) + '</span>' : '') + '</div>' +
+        '<div class="note">' + esc(c.name) + '</div>' +
+        (c.alternative ? '<div class="pills"><span class="pill orange">Either / or — keep yours</span></div>' : '') + '</div>' +
+        '<button class="sw' + (c.on ? ' on' : '') + '" onclick="ttToggle(' + c._i + ')" aria-label="add"></button></div>';
+    });
+    free.forEach(function (f) {
+      h += '<div class="row"><div class="tile" style="background:var(--green)">' + icon('sun') + '</div><div class="content"><div class="ttl" style="font-weight:500">' + esc(f.text) + '</div>' +
+        '<div class="meta"><span>' + icon('clock') + ampm(f.start) + ' – ' + ampm(f.end) + '</span><span>Kept free</span></div></div></div>';
+    });
+    h += '</div>';
+  });
+  if ((r.skipped || []).length) h += '<div class="section">Not added — not your modules</div><div class="group">' + r.skipped.map(function (x) {
+    return '<div class="row off"><div class="tile" style="background:var(--gray)">' + icon('x') + '</div><div class="content"><div class="ttl">' + esc(x.code) + '</div><div class="note">' + esc(x.name) + '</div></div></div>';
+  }).join('') + '</div>';
+  h += '<div class="sticky"><button class="btn grad" id="ttSave" onclick="ttSave()"' + (on ? '' : ' disabled') + '>' + icon('check') + 'Add ' + on + ' weekly ' + (on === 1 ? 'class' : 'classes') + ' to calendar</button></div>' +
+    '<div style="margin-top:10px"><button class="btn gray" onclick="openImport()">Choose another file</button></div>';
+  $('main').innerHTML = h;
+}
+function ttToggle(i) { var c = state.tt.classes[i]; c.on = !c.on; var y = window.scrollY; drawTTReview(); window.scrollTo(0, y); }
+function ttEdit(i) {
+  var c = state.tt.classes[i];
+  openSheet('<h3>' + esc(c.code) + ' · ' + esc(TT_DAYNAME[c.day]) + '</h3><div class="note" style="margin:-6px 0 12px">' + esc(c.name) + '</div><div class="group">' +
+    '<div class="field"><label>Starts</label><input type="time" id="te-s" value="' + c.start + '"></div>' +
+    '<div class="field"><label>Ends</label><input type="time" id="te-e" value="' + c.end + '"></div>' +
+    '<div class="field"><label>Venue</label><input id="te-v" value="' + esc(c.venue) + '" style="text-align:right"></div>' +
+    '<div class="field"><label>Type</label><select id="te-t" style="font:inherit;border:0;background:var(--fill);border-radius:8px;padding:6px 8px;color:var(--label)">' +
+      ['Lecture', 'Tutorial', 'Practical', 'Tutorial/Practical'].map(function (t) { return '<option' + (t === c.type ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></div>' +
+    '</div><div style="margin-top:16px"><button class="btn" onclick="ttEditSave(' + i + ')">Save</button></div>');
+}
+function ttEditSave(i) {
+  var c = state.tt.classes[i], s = $('te-s').value, e = $('te-e').value;
+  if (!s || !e || e <= s) { toast('The end must be after the start'); return; }
+  c.start = s; c.end = e; c.venue = $('te-v').value.trim(); c.type = $('te-t').value;
+  closeSheet(); var y = window.scrollY; drawTTReview(); window.scrollTo(0, y);
+}
+function ttSave() {
+  var r = state.tt, m = r.meta;
+  if (!m.start || !m.end || m.end < m.start) { toast('Please check the semester dates'); return; }
+  var list = r.classes.filter(function (c) { return c.on; });
+  $('ttSave').disabled = true; $('ttSave').innerHTML = '<span class="spinner" style="width:20px;height:20px;border-width:3px;margin:0"></span>Adding to your calendar…';
+  call('appTimetableSave', { start: m.start, end: m.end, classes: list }).then(function (res) {
+    openSheet('<div class="success"><div class="ring">' + icon('check') + '</div><div class="t">Timetable added</div><div class="s">' +
+      list.length + ' weekly classes<br>' + res.added + ' classes added to your calendar' +
+      (res.holidays ? '<br>' + res.holidays + ' skipped for holidays' : '') +
+      (res.remaining ? '<br>' + res.remaining + ' more will be added in the next minutes' : '') +
+      (res.removed ? '<br>' + res.removed + ' old classes removed' : '') + '</div>' +
+      '<button class="btn" onclick="closeSheet(); state.cal={view:\'week\',anchor:\'' + (m.start > (state.today || '') ? m.start : (state.today || m.start)) + '\'}; show(\'week\')">See my week</button></div>');
+  }).catch(function (e) { $('ttSave').disabled = false; drawTTReview(); toast(e.message || e); });
+}
+
+// ---------------- sheets ----------------
+function openSheet(html) { window.__onSheetClose = null; $('toast').style.display = 'none'; $('sheetPanel').innerHTML = '<div class="grab"></div>' + html; $('sheet').style.display = 'flex'; }
+function closeSheet() { $('sheet').style.display = 'none'; }
+function sheetOutside() { closeSheet(); var f = window.__onSheetClose; window.__onSheetClose = null; if (f) f(); }
+function confirmSheet(title, text, yes, fn, onCancel) {
+  openSheet('<h3>' + esc(title) + '</h3><div class="hint" style="margin:0 0 18px">' + esc(text) + '</div>' +
+    '<button class="btn" id="cy">' + esc(yes) + '</button><div style="height:10px"></div><button class="btn gray" id="cn">Cancel</button>');
+  $('cy').onclick = function () { closeSheet(); fn(); };
+  $('cn').onclick = function () { closeSheet(); if (onCancel) onCancel(); };
+  window.__onSheetClose = onCancel || null;
+}
+function successSheet(a) {
+  openSheet('<div class="success"><div class="ring">' + icon('check') + '</div><div class="t">Added to your calendar</div>' +
+    '<div class="s"><b>' + esc(a.title) + '</b><br>' + nice(a.date, true) + '<br>' + ampm(a.start) + ' – ' + ampm(a.end) + (a.venue ? '<br>' + esc(a.venue) : '') + (a.repeatText ? '<br><span style="display:inline-flex;align-items:center;gap:5px;color:var(--teal);font-weight:600">' + icon('repeat') + esc(a.repeatText) + '</span>' : '') + '</div>' +
+    '<button class="btn" onclick="closeSheet(); state.date=\'' + a.date + '\'; show(\'today\')">See it in my day</button>' +
+    '<div style="height:10px"></div><button class="btn gray" onclick="closeSheet(); state.task = newTask(); renderAdd()">Add another</button></div>');
+}
+
+
+// ---------------- after "Add anyway": what to do with the other task? ----------------
+function drawResolve() {
+  var R = state.resolve, n = R.items.length;
+  var h = '<h3>' + (R.moved ? 'Your task overlaps ' : 'Your new task overlaps ') + (n === 1 ? '1 thing' : n + ' things') + '</h3>' +
+    '<div class="hint" style="margin:-6px 0 14px">“' + esc(R.add.title) + '” · ' + nice(R.add.date) + ', ' + ampm(R.add.start) + ' – ' + ampm(R.add.end) + '. What should I do?</div>';
+  R.items.forEach(function (o, i) {
+    var k = kindOf({ title: o.title, type: o.type, personal: o.personal, notes: '' });
+    h += '<div class="rcard"><div class="top"><div class="tile" style="background:' + k.c + '">' + icon(k.i) + '</div><div class="content">' +
+      '<div class="ttl">' + esc(cleanTitle(o.title)) + '</div><div class="meta"><span>' + icon('clock') + nice(o.date) + ', ' + ampm(o.start) + ' – ' + ampm(o.end) + '</span>' +
+      (o.repeating ? '<span>' + icon('repeat') + 'repeating</span>' : '') + '</div>' +
+      (!o.own ? '<div class="note">' + (o.personal ? 'From your personal calendar' : 'From the university (Moodle)') + ' — it can’t be changed here.</div>' : '') + '</div></div>';
+    if (o.done) h += '<div class="state">' + icon('check') + esc(o.done) + '</div>';
+    else if (o.own && !o.repeating) h += '<div class="btns"><button class="btn small" onclick="rsMove(' + i + ')">Find a new time</button>' +
+      '<button class="btn small red" onclick="rsDelete(' + i + ')">Delete</button><button class="btn small gray" onclick="rsKeep(' + i + ')">Keep both</button></div>';
+    else if (o.own) h += '<div class="btns"><button class="btn small red" onclick="rsDelete(' + i + ')">Delete all repeats</button><button class="btn small gray" onclick="rsKeep(' + i + ')">Keep both</button></div>';
+    else h += '<div class="btns"><button class="btn small gray" onclick="rsKeep(' + i + ')">Keep both</button>' +
+      (R.moved ? '' : R.add.repeatText ? '<button class="btn small red" onclick="rsDropNew()">Remove my new task</button>' : '<button class="btn small" onclick="rsMoveNew()">Move my new task instead</button>') + '</div>';
+    h += '</div>';
+  });
+  h += '<div style="margin-top:8px"><button class="btn" onclick="' + (R.moved ? 'closeSheet();drawCal()' : 'successSheet(state.resolve.add)') + '">Done</button></div>';
+  openSheet(h);
+}
+function rsKeep(i) { state.resolve.items[i].done = 'Keeping both'; drawResolve(); }
+function rsDelete(i) {
+  var o = state.resolve.items[i];
+  call('appRemoveTask', o.id).then(function () { o.done = o.repeating ? 'All repeats deleted' : 'Deleted'; drawResolve(); }).catch(function (e) { toast(e.message || e); });
+}
+function rsPick(title, id, onDone) {
+  openSheet('<h3>' + esc(title) + '</h3><div id="rsopts">' + skeleton(2) + '</div><button class="btn gray" onclick="drawResolve()">Back</button>');
+  call('appSuggestMove', id).then(function (r) {
+    window.__rsDone = onDone; window.__rsId = id;
+    $('rsopts').innerHTML = optionsHtml(r.options, 'Move here', 'rsChoose');
+  }).catch(function (e) { $('rsopts').innerHTML = '<div class="warn">' + esc(e.message || e) + '</div>'; });
+}
+function rsChoose(date, start, btn) {
+  if (btn) btn.disabled = true;
+  call('appMoveTask', window.__rsId, { date: date, start: start }).then(function (r) {
+    if (!r.ok) { if (btn) btn.disabled = false; toast('That time is not free any more — pick another'); return; }
+    window.__rsDone('Moved to ' + nice(date) + ', ' + ampm(start)); drawResolve();
+  }).catch(function (e) { if (btn) btn.disabled = false; toast(e.message || e); });
+}
+function rsMove(i) {
+  var o = state.resolve.items[i];
+  rsPick('New time for “' + cleanTitle(o.title) + '”', o.id, function (msg) { o.done = msg; });
+}
+function rsMoveNew() {
+  var R = state.resolve;
+  rsPick('New time for “' + R.add.title + '”', R.add.id, function (msg) {
+    R.items.forEach(function (o) { if (!o.done) o.done = 'Your new task: ' + msg.toLowerCase(); });
+  });
+}
+function rsDropNew() {
+  call('appRemoveTask', state.resolve.add.id).then(function () { closeSheet(); toast('Your new task was removed'); show('add'); }).catch(function (e) { toast(e.message || e); });
+}
+
+// ---------------- move / remove your own task ----------------
+function moveTask(id) {
+  state.moving = id;
+  openSheet('<h3>Move task</h3><div id="mv">' + skeleton(2) + '</div>' +
+    '<div class="section">Or pick your own time</div><div class="group">' +
+    '<div class="field"><label>Date</label><input id="mv-date" type="date"></div><div class="field"><label>Start</label><input id="mv-time" type="time"></div></div>' +
+    '<div style="margin-top:12px"><button class="btn tinted" onclick="pickMove(null,null,this)">Move to this time</button></div>');
+  call('appSuggestMove', id).then(function (r) { $('mv').innerHTML = optionsHtml(r.options, 'Move here', 'pickMove'); })
+    .catch(function (e) { $('mv').innerHTML = '<div class="warn">' + esc(e.message || e) + '</div>'; });
+}
+function pickMove(date, start, btn, force) {
+  date = date || ($('mv-date') && $('mv-date').value); start = start || ($('mv-time') && $('mv-time').value);
+  if (!date || !start) { toast('Pick a date and a start time'); return; }
+  if (btn) btn.disabled = true;
+  call('appMoveTask', state.moving, { date: date, start: start }, !!force).then(function (r) {
+    if (!r.ok) { confirmSheet('This time overlaps', 'It overlaps: ' + r.clash.map(niceClash).join('; ') + '.', 'Move anyway', function () { pickMove(date, start, null, true); }); return; }
+    closeSheet(); toast('Moved to ' + nice(date) + ', ' + ampm(start)); state.date = date; show('today');
+  }).catch(function (e) { if (btn) btn.disabled = false; toast(e.message || e); });
+}
+function removeTask(id, repeating) {
+  confirmSheet(repeating ? 'Remove all repeats?' : 'Remove this task?', repeating ? 'Every repeat of this task will be removed from your calendar.' : 'It will be removed from your calendar.', 'Remove', function () {
+    call('appRemoveTask', id).then(function () { toast('Removed'); if (state.view === 'event') goBack(); else loadDay(state.date); }).catch(function (e) { toast(e.message || e); });
+  });
+}
+
+// ---------------- Questions ----------------
+function loadQuestions() { loadUpdates(); }
+function questionsHtml(qs) {
+    return qs.map(function (q) {
+      var lines = String(q.question).split('\n'), from = lines.slice(1).join(' ').replace(/^From: /, '');
+      return '<div class="opt"><div class="badge" style="color:var(--orange)">' + icon('question') + (q.yesNo ? 'Please answer' : 'Please check') + '</div>' +
+        '<div class="ttl" style="font-size:19px">' + esc(lines[0]) + '</div>' +
+        (from ? '<div class="meta" style="margin-top:6px"><span>' + icon('moodle') + esc(from) + '</span></div>' : '') +
+        (q.why ? '<div class="note" style="margin-top:8px">Why I ask: ' + esc(q.why) + '</div>' : '') +
+        q.links.map(function (l) { var u = l.split(' ')[0]; return /^https:\/\//.test(u) ? '<div class="meta" style="margin-top:6px"><a href="' + esc(u) + '" target="_blank" rel="noopener">' + icon('link') + ' Open link</a></div>' : ''; }).join('') +
+        '<div class="actions" style="margin-top:14px">' + (q.yesNo
+          ? '<button class="btn" onclick="answer(\'' + esc(q.id) + '\',\'YES\',this)">Yes</button><button class="btn gray" onclick="answer(\'' + esc(q.id) + '\',\'NO\',this)">No</button>'
+          : '<button class="btn gray" onclick="answer(\'' + esc(q.id) + '\',\'OK\',this)">OK, seen</button>') + '</div></div>';
+    }).join('');
+}
+function answer(id, a, btn) {
+  btn.disabled = true;
+  call('appAnswer', id, a).then(function (r) { toast(r.notes && r.notes.length ? cleanTitle(r.notes[0]).slice(0, 90) : 'Saved'); loadUpdates(); })
+    .catch(function (e) { btn.disabled = false; toast(e.message || e); });
+}
+
+
+// ---------------- side drawer ----------------
+var DRAWER = [['today', 'Home', 'home', 'var(--blue)'], ['subjects', 'Subjects & Tasks', 'stack', 'var(--indigo)'],
+  ['exams', 'Exams', 'exam', 'var(--purple)'], ['details', 'My details', 'user', 'var(--green)'], ['settings', 'Settings', 'gear', 'var(--gray)']];
+function openDrawer() {
+  $('dpanel').innerHTML = '<div class="dhead2"><div class="logo">' + icon('calendar') + '</div><div><div class="ttl" style="font-size:19px;font-weight:700">Uni Planner</div>' +
+    '<div class="note" style="margin:0">' + esc(state.myIndex || '') + '</div></div></div>' +
+    DRAWER.map(function (d) {
+      return '<button class="ditem' + (state.view === d[0] ? ' on' : '') + '" onclick="closeDrawer();show(\'' + d[0] + '\')"><span class="tile" style="background:' + d[3] + '">' + icon(d[2]) + '</span>' + d[1] + '</button>';
+    }).join('') +
+    '<div style="height:1px;background:var(--sep);margin:12px 6px"></div>' +
+    '<button class="ditem" onclick="closeDrawer();show(\'practical\')"><span class="tile" style="background:var(--teal)">' + icon('flask') + '</span>Import practical sheet</button>' +
+    '<button class="ditem" onclick="closeDrawer();show(\'add\');setTimeout(openImport,50)"><span class="tile" style="background:linear-gradient(135deg,#5E5CE6,#0A84FF)">' + icon('table') + '</span>Import timetable</button>';
+  $('drawer').classList.add('open');
+}
+function closeDrawer() { $('drawer').classList.remove('open'); }
+function backBtn(text, fn) { return '<button class="backlink" onclick="' + fn + '">' + icon('left') + esc(text) + '</button>'; }
+function whenLine(it) {
+  var t = it.repeat ? it.repeat : nice(it.date);
+  if (it.start === it.end && it.start) return t + ' · Due ' + ampm(it.start);
+  return t + (it.start ? ' · ' + ampm(it.start) + (it.end ? ' – ' + ampm(it.end) : '') : '');
+}
+
+// ---------------- Subjects & Tasks ----------------
+function loadSubjects() {
+  var s = state.sub = state.sub || { view: 'modules', when: 'upcoming', module: null };
+  header('SUBJECTS & TASKS', s.module || 'Subjects & Tasks', s.module ? 'Everything for this module' : '', false);
+  $('hextra').innerHTML = (s.module ? '' : '<div class="segctl">' +
+      '<button class="' + (s.view === 'modules' ? 'on' : '') + '" onclick="subSet(\'view\',\'modules\')">By module</button>' +
+      '<button class="' + (s.view === 'tasks' ? 'on' : '') + '" onclick="subSet(\'view\',\'tasks\')">My tasks</button></div>') +
+    (s.view === 'modules' && !s.module ? '' : '<div class="segctl">' +
+      '<button class="' + (s.when === 'upcoming' ? 'on' : '') + '" onclick="subSet(\'when\',\'upcoming\')">Upcoming</button>' +
+      '<button class="' + (s.when === 'history' ? 'on' : '') + '" onclick="subSet(\'when\',\'history\')">History</button></div>');
+  $('main').innerHTML = skeleton(4);
+  var ticket = state.subTicket = (state.subTicket || 0) + 1;
+  call('appItems', { view: s.view, when: s.when, module: s.module }).then(function (r) {
+    if (ticket !== state.subTicket || state.view !== 'subjects') return;
+    if (r.modules) return drawModules(r.modules);
+    state.subItems = r.items;
+    drawItems(r.items);
+  }).catch(fail);
+}
+function subSet(k, v) { state.sub[k] = v; if (k === 'view') state.sub.module = null; loadSubjects(); }
+function subModule(code) { state.sub.module = code; state.sub.when = 'upcoming'; window.scrollTo(0, 0); loadSubjects(); }
+function drawModules(list) {
+  if (!list.length) { $('main').innerHTML = '<div class="empty"><div class="bigicon">' + icon('stack') + '</div><b>No modules yet</b><div class="note">They appear after the first Moodle check.</div></div>'; return; }
+  list.forEach(function (m) { if (state.modules.indexOf(m.code) < 0) state.modules.push(m.code); });
+  $('main').innerHTML = '<div class="group">' + list.map(function (m) {
+    return '<div class="row" style="cursor:pointer;align-items:center" onclick="subModule(\'' + m.code + '\')"><div class="tile" style="background:' + moduleColor(m.code) + '">' + icon('lecture') + '</div>' +
+      '<div class="content"><div class="ttl">' + esc(m.code) + '</div>' +
+      (m.next ? '<div class="meta">Next: ' + esc(m.next.type || cleanTitle(m.next.title)) + ' · ' + esc(whenLine(m.next)) + '</div>' : '<div class="meta">Nothing coming up</div>') +
+      '<div><span class="badge2">' + m.upcoming + ' upcoming</span>' + (m.deadlines ? '<span class="badge2 red">' + m.deadlines + (m.deadlines === 1 ? ' deadline' : ' deadlines') + '</span>' : '') +
+      '<span class="badge2">' + m.history + ' past</span></div></div><span class="value">' + icon('chev') + '</span></div>';
+  }).join('') + '</div>';
+}
+function drawItems(items) {
+  var s = state.sub;
+  var top = s.module ? backBtn('All modules', "state.sub.module=null;loadSubjects()") : '';
+  if (!items.length) {
+    $('main').innerHTML = top + '<div class="empty"><div class="bigicon">' + icon(s.when === 'history' ? 'clock' : 'calendar') + '</div><b>' +
+      (s.when === 'history' ? 'Nothing in the history yet' : 'Nothing coming up') + '</b>' +
+      (s.view === 'tasks' && s.when === 'upcoming' ? '<div style="margin-top:14px"><button class="btn small tinted" onclick="show(\'add\')">Add a task</button></div>' : '') + '</div>';
+    return;
+  }
+  var groups = [], last = null;
+  items.forEach(function (it, i) {
+    var key = it.repeat ? 'Repeating' : nice(it.date, true);
+    if (key !== last) { groups.push({ key: key, list: [] }); last = key; }
+    groups[groups.length - 1].list.push(i);
+  });
+  $('main').innerHTML = top + groups.map(function (g) {
+    return '<div class="section">' + esc(g.key) + '</div><div class="group">' + g.list.map(function (i) {
+      var it = items[i], k = kindOf(it), off = it.status === 'cancelled';
+      return '<div class="row" style="cursor:pointer" onclick="openItem(' + i + ')"><div class="tile" style="background:' + k.c + '">' + icon(k.i) + '</div>' +
+        '<div class="content"><div class="ttl"' + (off ? ' style="text-decoration:line-through;opacity:.6"' : '') + '>' + esc(cleanTitle(it.title)) + '</div>' +
+        '<div class="meta"><span>' + icon('clock') + esc(whenLine(it)) + '</span>' + (it.venue ? '<span>' + icon('pin') + esc(it.venue) + '</span>' : '') + '</div>' +
+        (off ? '<div class="note" style="color:var(--red)">Cancelled</div>' : '') +
+        (/My note: /.test(it.notes) ? '<div class="note">' + icon('pencil') + esc(it.notes.split('My note: ')[1]) + '</div>' : '') +
+        '</div><span class="value">' + icon('chev') + '</span></div>';
+    }).join('') + '</div>';
+  }).join('');
+}
+var EDIT_DUR = [[0, 'Deadline'], [15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '1 hr'], [90, '1 hr 30 min'], [120, '2 hr'], [180, '3 hr'], [240, '4 hr']];
+function openItem(i) {
+  var it = state.subItems[i], k = kindOf(it);
+  return openEvPage(it.id, it.date);
+  state.editing = it;
+  var head = '<div class="row" style="padding:4px 0 12px"><div class="tile" style="background:' + k.c + '">' + icon(k.i) + '</div><div class="content">' +
+    '<div class="ttl" style="font-size:19px">' + esc(cleanTitle(it.title)) + '</div><div class="meta">' + esc(whenLine(it)) + '</div></div></div>';
+  if (!it.own && !it.repeat) {
+    openSheet(head + '<div class="meta" style="margin:-4px 0 6px">' + (it.venue ? '<span>' + icon('pin') + esc(it.venue) + '</span>' : '') + '</div>' +
+      '<div id="evnotes"><div class="skel" style="height:60px"></div></div>');
+    loadEvNotes(it.id, it.date);
+    return;
+  }
+  if (!it.own) {
+    var mine = (it.notes.split('My note: ')[1] || '');
+    var info = it.notes.replace(/\n?My note: [\s\S]*$/, '');
+    openSheet(head + '<div class="group">' +
+      (it.venue ? '<div class="field"><div class="tile" style="background:var(--green)">' + icon('pin') + '</div><label>' + esc(it.venue) + '</label></div>' : '') +
+      (info ? '<div class="field" style="align-items:flex-start"><div class="tile" style="background:var(--gray)">' + icon('doc') + '</div><div class="note" style="margin:6px 0;white-space:pre-wrap">' + esc(info) + '</div></div>' : '') +
+      '<div class="field" style="align-items:flex-start"><div class="tile" style="background:var(--orange)">' + icon('pencil') + '</div><textarea id="e-mynote" placeholder="My note (only you see it)">' + esc(mine) + '</textarea></div></div>' +
+      '<div class="hint" style="margin:10px 4px 16px">Moodle and your timetable control this item, so only your note can change.' + (it.source ? ' From: ' + esc(it.source) : '') + '</div>' +
+      '<button class="btn" id="e-save">Save note</button><div style="height:10px"></div><button class="btn gray" onclick="closeSheet()">Close</button>');
+    $('e-save').onclick = function () { saveItem({ myNote: $('e-mynote').value.trim() }); };
+    return;
+  }
+  var notes = it.notes.replace(/\n?Kind: \w+\s*$/, '');
+  var dur = it.start === it.end ? 0 : toM(it.end) - toM(it.start);
+  var durs = EDIT_DUR.slice(); if (!durs.some(function (d) { return d[0] === dur; })) durs.push([dur, durText(dur)]);
+  openSheet(head + '<div class="group">' +
+    '<div class="field"><div class="tile" style="background:var(--blue)">' + icon('sparkle') + '</div><input id="e-title" value="' + esc(cleanTitle(it.title)) + '" placeholder="What is it?"></div>' +
+    (it.repeat ? '' :
+      '<div class="field"><div class="tile" style="background:var(--red)">' + icon('calendar') + '</div><label>Date</label><input id="e-date" type="date" value="' + esc(it.date) + '"></div>' +
+      '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('clock') + '</div><label id="e-tl">' + (dur === 0 ? 'Due at' : 'Starts') + '</label><input id="e-time" type="time" value="' + esc(it.start) + '"></div>' +
+      '<div class="field"><div class="tile" style="background:var(--orange)">' + icon('timer') + '</div><label>How long</label><select id="e-dur" onchange="$(\'e-tl\').textContent=this.value===\'0\'?\'Due at\':\'Starts\'">' +
+        durs.map(function (d) { return '<option value="' + d[0] + '"' + (d[0] === dur ? ' selected' : '') + '>' + d[1] + '</option>'; }).join('') + '</select></div>') +
+    '<div class="field"><div class="tile" style="background:var(--green)">' + icon('pin') + '</div><input id="e-venue" value="' + esc(it.venue) + '" placeholder="Location"></div>' +
+    '<div class="field" style="align-items:flex-start"><div class="tile" style="background:var(--gray)">' + icon('doc') + '</div><textarea id="e-notes" placeholder="Notes">' + esc(notes) + '</textarea></div></div>' +
+    (it.repeat ? '<div class="hint" style="margin:10px 4px 0">' + icon('repeat') + ' ' + esc(it.repeat) + '. To change the time, drag it in the Calendar.</div>' : '') +
+    '<div style="margin-top:16px"><button class="btn" id="e-save">Save</button></div><div style="height:10px"></div>' +
+    '<button class="btn gray" style="color:var(--red)" id="e-del">' + (it.repeat ? 'Remove all repeats' : 'Remove') + '</button>');
+  $('e-save').onclick = function () {
+    var ch = { title: $('e-title').value.trim(), venue: $('e-venue').value.trim(), notes: $('e-notes').value.trim() };
+    if (!it.repeat) { ch.date = $('e-date').value; ch.start = $('e-time').value; ch.durationMin = Number($('e-dur').value); }
+    if (!ch.title) { toast('Type what it is'); return; }
+    if (!it.repeat && (!ch.date || !ch.start)) { toast('Pick the date and time'); return; }
+    saveItem(ch);
+  };
+  $('e-del').onclick = function () {
+    confirmSheet(it.repeat ? 'Remove all repeats?' : 'Remove this task?', cleanTitle(it.title) + ' will be removed from your calendar.', 'Remove', function () {
+      call('appRemoveTask', it.id).then(function () { toast('Removed'); loadSubjects(); }).catch(function (e) { toast(e.message || e); });
+    });
+  };
+}
+function saveItem(ch, force) {
+  var b = $('e-save'); if (b) { b.disabled = true; b.textContent = 'Saving…'; }
+  call('appEditItem', state.editing.id, ch, !!force).then(function (r) {
+    if (r && r.ok === false && r.clash) {
+      confirmSheet('This overlaps', r.clash.slice(0, 3).join('\n'), 'Save anyway', function () { saveItem(ch, true); });
+      return;
+    }
+    closeSheet(); toast('Saved ✓'); loadSubjects();
+  }).catch(function (e) { if (b) { b.disabled = false; b.textContent = 'Save'; } toast(e.message || e); });
+}
+
+// ---------------- My details ----------------
+function loadDetails() {
+  header('ABOUT ME', 'My details', 'Used to find you in practical sheets', false);
+  $('main').innerHTML = skeleton(3);
+  call('appProfile').then(function (p) { state.profile = p; state.myIndex = p.index; drawDetails(); }).catch(fail);
+}
+function semText(v) { return v === 'auto' ? 'Auto (newest)' : 'S' + v; }
+function drawDetails() {
+  var p = state.profile;
+  var codes = p.modules.slice();
+  p.groups.forEach(function (g) { if (codes.indexOf(g.module) < 0) codes.push(g.module); });
+  codes.sort();
+  var gOf = function (c) { return p.groups.filter(function (g) { return g.module === c; })[0] || { group: '', from: '' }; };
+  $('main').innerHTML =
+    '<div class="group">' +
+      '<div class="field"><div class="tile" style="background:var(--green)">' + icon('user') + '</div><label>Index number</label>' +
+        '<input id="d-index" class="ginput" style="width:110px !important;text-transform:uppercase" value="' + esc(p.index) + '" maxlength="7" onchange="saveIndex()"></div>' +
+      '<div class="field tap" onclick="openSemester()"><div class="tile" style="background:var(--indigo)">' + icon('lecture') + '</div><label>Semester</label>' +
+        '<span class="value">' + esc(semText(p.semester)) + icon('chev') + '</span></div>' +
+    '</div>' +
+    '<div class="section">My groups</div><div class="group">' +
+      (codes.length ? codes.map(function (c) {
+        var g = gOf(c);
+        return '<div class="field"><div class="tile" style="background:' + moduleColor(c) + '">' + icon('flask') + '</div><label>' + esc(c) +
+          (g.from ? '<div class="note" style="margin:0;font-size:12px">' + esc(/^you/.test(g.from) ? 'set by you' : 'learned from ' + g.from.replace(/\s*\(.*$/, '')) + '</div>' : '') + '</label>' +
+          '<input class="ginput" value="' + esc(g.group) + '" placeholder="–" maxlength="20" onchange="saveGroup(\'' + c + '\', this.value)"></div>';
+      }).join('') : '<div class="row"><div class="content note">Your modules appear after the first Moodle check.</div></div>') +
+    '</div>' +
+    '<div class="hint" style="margin:8px 4px 0">Uni Planner learns your groups from practical sheets. What you type here always wins. Leave it empty if you do not know.</div>' +
+    '<div style="margin-top:22px"><button class="btn grad" onclick="show(\'practical\')">' + icon('flask') + 'Import a practical sheet</button></div>';
+}
+function saveIndex() {
+  var v = $('d-index').value.trim().toUpperCase();
+  call('appSaveProfile', { index: v }).then(function (p) { state.profile = p; state.myIndex = p.index; toast('Index saved ✓'); })
+    .catch(function (e) { toast(e.message || e); $('d-index').value = state.profile.index; });
+}
+function saveGroup(code, v) {
+  call('appSaveProfile', { group: { module: code, group: v.trim() } }).then(function (p) { state.profile = p; drawDetails(); toast(code + ' group saved ✓'); })
+    .catch(function (e) { toast(e.message || e); });
+}
+function openSemester() {
+  openSheet('<h3>Semester</h3><div class="reading" style="padding:20px 0"><div class="spinner"></div><div class="note">Asking Moodle…</div></div>');
+  call('appSemesterOptions').then(function (o) {
+    $('sheetPanel').innerHTML = '<div class="grab"></div><h3>Semester</h3><div class="hint" style="margin:0 0 12px">Uni Planner reads only the modules of this semester.</div><div class="group opts">' +
+      o.options.map(function (x) {
+        return '<div class="row' + (String(o.chosen) === x.value ? ' sel' : '') + '" onclick="pickSemester(\'' + x.value + '\')"><div class="content" style="font-size:16px">' + esc(x.label) + '</div><span class="tickmark">' + icon('check') + '</span></div>';
+      }).join('') + '</div>';
+  }).catch(function (e) { $('sheetPanel').innerHTML = '<div class="grab"></div><div class="warn">' + esc(e.message || e) + '</div>'; });
+}
+function pickSemester(v) {
+  call('appSaveProfile', { semester: v }).then(function (p) { state.profile = p; closeSheet(); drawDetails(); toast('Semester saved ✓'); }).catch(function (e) { toast(e.message || e); });
+}
+
+// ---------------- practical sheet ----------------
+function openPractical() {
+  header('IMPORT', 'Practical sheet', 'I find your index and group', false);
+  $('main').innerHTML = skeleton(2);
+  call('appProfile').then(function (p) {
+    state.profile = p; state.myIndex = p.index;
+    var opts = p.modules.map(function (c) { return '<option value="' + c + '"' + (state.pracCode === c ? ' selected' : '') + '>' + c + '</option>'; }).join('');
+    $('main').innerHTML = '<div class="group">' +
+        '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('lecture') + '</div><label>Module</label>' +
+          '<select id="p-code" onchange="state.pracCode=this.value"><option value="">Choose…</option>' + opts + '</select></div>' +
+        '<div class="field"><div class="tile" style="background:var(--green)">' + icon('user') + '</div><label>My index</label><span class="value">' + esc(p.index) + '</span></div>' +
+      '</div>' +
+      '<div class="drop" style="margin-top:16px"><div class="bigicon" style="background:var(--teal)">' + icon('flask') + '</div>' +
+        '<div class="ttl" style="font-size:19px">Choose the practical sheet</div>' +
+        '<div class="note" style="margin:6px 0 16px">The PDF, or a clear photo of it (for example from WhatsApp).</div>' +
+        '<label class="btn grad" style="display:inline-flex;width:auto;padding:13px 24px">' + icon('upload') + 'Choose PDF or photo' +
+          '<input type="file" id="pFile" accept="application/pdf,image/*" style="display:none" onchange="pracPicked(this)"></label>' +
+        '<ul class="bul"><li>' + icon('check') + 'Only YOUR sessions are added (your index or group)</li>' +
+        '<li>' + icon('check') + 'You check them before anything is added</li>' +
+        '<li>' + icon('check') + 'Your group is saved in My details</li></ul></div>' +
+      '<div class="hint" style="margin-top:12px">Practical sheets posted on Moodle are read automatically. Use this for sheets from other places.</div>';
+  }).catch(fail);
+}
+function pracPicked(input) {
+  var f = input.files && input.files[0], code = $('p-code').value;
+  if (!f) return;
+  if (!code) { toast('Choose the module first'); input.value = ''; return; }
+  state.pracCode = code;
+  $('main').innerHTML = '<div class="reading"><div class="spinner"></div><div class="ttl">Reading the practical sheet…</div>' +
+    '<div class="note" style="margin-top:6px">' + esc(f.name) + '<br>Looking for ' + esc(state.myIndex || 'your index') + '. This takes about 20 seconds.</div></div>';
+  readPicked(f, function (b64, mime) {
+    call('appPracticalPreview', b64, mime, code).then(function (r) { state.prac = r; drawPracReview(); })
+      .catch(function (e) { $('main').innerHTML = '<div class="warn">' + esc(e.message || e) + '</div><div style="margin-top:14px"><button class="btn" onclick="openPractical()">Try again</button></div>'; });
+  });
+}
+function drawPracReview() {
+  var r = state.prac;
+  header('CHECK BEFORE ADDING', r.code || state.pracCode, r.found ? 'Group ' + r.groups.join(', ') : '', false);
+  if (!r.found) {
+    $('main').innerHTML = '<div class="warn">' + esc(r.message) + '</div><div class="hint" style="margin:10px 4px">I looked for index ' + esc(r.index) +
+      '. Check your index in My details, or try a clearer photo.</div><div style="margin-top:14px"><button class="btn" onclick="openPractical()">Try another file</button></div>';
+    return;
+  }
+  r.sessions.forEach(function (s) { if (s.on === undefined) s.on = s.ok; });
+  var n = r.sessions.filter(function (s) { return s.on; }).length;
+  $('main').innerHTML = '<div class="group">' + r.sessions.map(function (s, i) {
+    return '<div class="row"><div class="tile" style="background:var(--teal)">' + icon('flask') + '</div><div class="content"><div class="ttl">' + esc(s.experiment || 'Practical') + '</div>' +
+      '<div class="meta">' + (s.ok ? esc(nice(s.date) + ' · ' + ampm(s.start) + ' – ' + ampm(s.end)) : '<span style="color:var(--orange)">Date or time not clear: ' + esc(s.raw) + '</span>') + '</div>' +
+      (s.venue ? '<div class="meta">' + icon('pin') + esc(s.venue) + '</div>' : '') + '</div>' +
+      (s.ok ? '<button class="sw' + (s.on ? ' on' : '') + '" onclick="state.prac.sessions[' + i + '].on=!state.prac.sessions[' + i + '].on;drawPracReview()" aria-label="add"></button>' : '') + '</div>';
+  }).join('') + '</div>' +
+    '<div class="hint" style="margin:10px 4px 0">Found your index ' + esc(r.index) + ' in group ' + esc(r.groups.join(', ')) + '. Turn off any session you do not want.</div>' +
+    '<div style="margin-top:20px"><button class="btn grad" id="p-save"' + (n ? '' : ' disabled') + ' onclick="pracSave()">' + icon('check') + 'Add ' + n + (n === 1 ? ' session' : ' sessions') + '</button></div>';
+}
+function pracSave() {
+  var r = state.prac, b = $('p-save'); b.disabled = true; b.textContent = 'Adding…';
+  call('appPracticalSave', { code: r.code, groups: r.groups, sessions: r.sessions.filter(function (s) { return s.on; }) }).then(function (x) {
+    openSheet('<div style="text-align:center;padding:10px 0 6px"><div class="bigicon" style="width:64px;height:64px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;color:#fff;background:var(--green)">' + icon('check') + '</div>' +
+      '<h3>Added ✓</h3><div class="hint">' + x.added + ' new' + (x.changed ? ', ' + x.changed + ' changed' : '') + '. Your group (' + esc(r.groups.join(', ')) + ') is saved.</div></div>' +
+      '<button class="btn" onclick="closeSheet();state.cal={view:\'week\',anchor:\'' + (r.sessions[0] && r.sessions[0].date || state.today) + '\'};show(\'week\')">See it in the calendar</button>');
+  }).catch(function (e) { b.disabled = false; b.textContent = 'Try again'; toast(e.message || e); });
+}
+
+// ---------------- Settings ----------------
+function loadSettings() {
+  header('APP', 'Settings', '', false);
+  $('main').innerHTML = skeleton(3);
+  Promise.all([call('appSettings'), lockAvailable(), IN_GOOGLE ? null : idbGet('lock').catch(function () { return null; })]).then(function (r) {
+    state.settings = r[0]; state.lockOk = r[1]; state.lockSet = !!r[2]; drawSettings();
+  }).catch(fail);
+}
+function drawSettings() {
+  var s = state.settings;
+  var ok = function (b) { return b ? '<span class="value" style="color:var(--green)">Connected ✓</span>' : '<span class="value" style="color:var(--red)">Not set up</span>'; };
+  $('main').innerHTML =
+    '<div class="section">Moodle</div><div class="group">' +
+      '<div class="field"><div class="tile" style="background:var(--green)">' + icon('repeat') + '</div><label>Check Moodle every 10 minutes' +
+        '<div class="note" style="margin:0;font-size:12px">' + (s.lastRun ? 'Last check: ' + esc(s.lastRun) : 'Not checked yet') + '</div></label>' +
+        '<button class="sw' + (s.auto ? ' on' : '') + '" onclick="setAuto(' + !s.auto + ')" aria-label="automatic"></button></div>' +
+      '<div class="field tap" id="s-sync" onclick="syncNowApp()"><div class="tile" style="background:var(--blue)">' + icon('bell') + '</div><label>Check Moodle now</label><span class="value">' + icon('chev') + '</span></div>' +
+    '</div>' +
+    '<div class="section">Connections</div><div class="group">' +
+      '<div class="field"><div class="tile" style="background:var(--orange)">' + icon('lecture') + '</div><label>Moodle</label>' + ok(s.moodle) + '</div>' +
+      '<div class="field"><div class="tile" style="background:var(--purple)">' + icon('sparkle') + '</div><label>Gemini AI</label>' + ok(s.gemini) + '</div>' +
+    '</div>' +
+    '<div class="hint" style="margin:8px 4px 0">To change the Moodle login or the Gemini key, use the Uni Planner menu in your Google Sheet (1. Setup).</div>' +
+    (IN_GOOGLE ? '' : '<div class="section">This phone</div><div class="group">' +
+      (state.lockOk ? '<div class="field"><div class="tile" style="background:var(--green)">' + icon('shield') + '</div><label>Lock with fingerprint' +
+        '<div class="note" style="margin:0;font-size:12px">Asks every time you open the app</div></label>' +
+        '<button class="sw' + (state.lockSet ? ' on' : '') + '" onclick="toggleLock()" aria-label="lock"></button></div>' : '') +
+      '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('phone') + '</div><label>Secret key<div class="note" style="margin:0;font-size:12px">Made on this phone. Locked: it cannot be read or copied.</div></label><span class="value" style="color:var(--green)">✓</span></div>' +
+      '<div class="field tap" onclick="disconnectPhone()"><div class="tile" style="background:var(--red)">' + icon('x') + '</div><label style="color:var(--red)">Disconnect this phone</label></div></div>' +
+      '<div class="hint" style="margin:8px 4px 0">Lost your phone? In the sheet, use menu 11 to lock the app everywhere.</div>') +
+    '<div class="section">About</div><div class="group">' +
+      '<div class="field"><div class="tile" style="background:var(--gray)">' + icon('shield') + '</div><label>Your data stays in your own Google account. The app reads only university Moodle. Your Moodle password is never saved.</label></div>' +
+      '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('calendar') + '</div><label>Uni Planner</label><span class="value">version ' + esc(s.version) + '</span></div>' +
+    '</div>';
+}
+function setAuto(on) {
+  call('appSetAuto', on).then(function (s) { state.settings = s; drawSettings(); toast(on ? 'Automatic check is ON' : 'Automatic check is OFF'); }).catch(function (e) { toast(e.message || e); });
+}
+function syncNowApp() {
+  var row = $('s-sync'); row.querySelector('.value').innerHTML = '<div class="spinner" style="width:20px;height:20px;margin:0"></div>';
+  call('appSyncNow').then(function (r) { toast(r.msg); loadSettings(); }).catch(function (e) { toast(e.message || e); loadSettings(); });
+}
+function disconnectPhone() {
+  confirmSheet('Disconnect this phone?', 'The secret key on this phone is deleted. The app stops working until you scan a new QR code from the sheet (menu 10).', 'Disconnect', function () {
+    DEV = null;
+    Promise.all([idbDel('dev'), idbDel('lock')]).then(function () { drawSetup(); });
+  });
+}
+function toggleLock() {
+  if (!state.lockSet) {
+    lockOn().then(function () { state.lockSet = true; drawSettings(); toast('Fingerprint lock is ON'); })
+      .catch(function () { toast('Fingerprint lock was not turned on'); });
+  } else {
+    idbGet('lock').then(function (L) { return lockCheck(L.id); })   // prove it is you before turning it off
+      .then(function () { return idbDel('lock'); }).then(function () { state.lockSet = false; drawSettings(); toast('Fingerprint lock is OFF'); })
+      .catch(function () { toast('Not changed'); });
+  }
+}
+
+
+
+// ---------------- one event as its own page ----------------
+function openEvPage(id, date) {
+  if (state.view !== 'event') state.prevView = state.view;
+  state.view = 'event'; setNav('');
+  if (window.__cdTimer) { clearInterval(window.__cdTimer); window.__cdTimer = null; }
+  closeSheet(); closeDrawer(); window.scrollTo(0, 0);
+  header('', '…', '', false);
+  $('hextra').innerHTML = '';
+  $('main').innerHTML = skeleton(3);
+  call('appEventNotes', id, date).then(function (r) { state.noteCtx = r; drawEvPage(); }).catch(fail);
+}
+function goBack() { var v = state.prevView || 'today'; state.view = ''; show(v); }
+function drawEvPage() {
+  var r = state.noteCtx, e = r.event, k = kindOf({ title: e.rawTitle, type: e.type, notes: e.notes, color: e.color, start: e.start, end: e.end });
+  var moment = e.start && e.start === e.end;
+  var when = e.allDay ? 'All day' : moment ? 'Due ' + ampm(e.start) : ampm(e.start) + ' – ' + ampm(e.end);
+  header((e.code ? e.code + ' · ' : '') + (e.own ? (moment ? 'My deadline' : 'My task') : e.type || 'Event'), cleanTitle(e.rawTitle), '', false);
+  $('eyebrow').style.height = 'auto';
+  $('eyebrow').innerHTML = '<div onclick="goBack()" style="cursor:pointer;color:var(--blue);text-transform:none;font-size:17px;font-weight:400;display:inline-flex;align-items:center;gap:2px;margin:0 0 6px -6px">' + icon('left') + 'Back</div>' +
+    '<div>' + esc((e.code ? e.code + ' · ' : '') + (e.own ? (moment ? 'My deadline' : 'My task') : e.type || 'Event')) + '</div>';
+  $('hsub').innerHTML = '';
+  $('hextra').innerHTML = '<div class="evhead"><div class="tile" style="background:' + k.c + '">' + icon(k.i) + '</div><div>' +
+    '<div class="meta"><span>' + icon('calendar') + esc(nice(e.date, true)) + '</span></div>' +
+    '<div class="meta"><span>' + icon('clock') + esc(when) + '</span>' + (e.repeating ? '<span>' + icon('repeat') + esc(e.repeatText) + '</span>' : '') + '</div>' +
+    (e.venue ? '<div class="meta"><span>' + icon('pin') + esc(e.venue) + '</span></div>' : '') + '</div></div>';
+  var pills = [];
+  if (e.status === 'cancelled') pills.push('<span class="pill red">Cancelled</span>');
+  if (e.color === '10') pills.push('<span class="pill green">Submitted</span>');
+  if (r.past) pills.push('<span class="pill">Finished</span>');
+  var info = e.notes.split('\n').filter(function (l) { return l && !/^Kind: |^Status: /.test(l); }).join('\n');
+  var h = (pills.length ? '<div class="pills" style="margin:4px 0 8px">' + pills.join('') + '</div>' : '');
+  if (e.timeEditable) {
+    h += '<div class="section">Time</div><div class="group">' +
+      '<div class="field"><div class="tile" style="background:var(--red)">' + icon('calendar') + '</div><label>Date</label>' +
+        (e.own ? '<input id="pg-date" type="date" value="' + esc(e.date) + '" onchange="pgDirty()">' : '<span class="value">' + esc(nice(e.date)) + '</span>') + '</div>' +
+      '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('clock') + '</div><label>' + (moment ? 'Due at' : 'Starts') + '</label><input id="pg-s" type="time" value="' + esc(e.start) + '" onchange="pgDirty()"></div>' +
+      (moment ? '' : '<div class="field"><div class="tile" style="background:var(--orange)">' + icon('timer') + '</div><label>Ends</label><input id="pg-e" type="time" value="' + esc(e.end) + '" onchange="pgDirty()"></div>' +
+        '<div class="seg" style="padding:2px 14px 12px 62px"><button class="chip" onclick="pgExtend(15)">+15 min</button><button class="chip" onclick="pgExtend(30)">+30 min</button><button class="chip" onclick="pgExtend(60)">+1 hr</button></div>') +
+      '</div>' +
+      '<div id="pg-savebar" style="display:none;margin-top:10px"><button class="btn" id="pg-save" onclick="pgSaveTime()">Save time</button></div>' +
+      (e.own ? '' : '<div class="hint" style="margin:8px 4px 0">The class ran longer or moved? Change it here. It changes only your calendar.</div>');
+  } else if (e.repeating) {
+    h += '<div class="hint" style="margin:6px 4px 0">' + icon('repeat') + ' This repeats. To change its time, press and hold it in the Calendar and drag.</div>';
+  }
+  if (info) h += '<div class="section">Details</div><div class="group" style="padding:12px 14px"><div class="note" style="margin:0;white-space:pre-line">' + esc(info) + '</div>' +
+    (e.source && !e.own ? '<div class="note" style="font-size:12px;margin-top:8px">From: ' + esc(e.source) + '</div>' : '') + '</div>';
+  h += '<div id="evnotes" style="margin-top:6px"></div><div id="pg-actions" style="margin-top:22px;display:flex;flex-direction:column;gap:10px"></div>';
+  $('main').innerHTML = h;
+  drawEvNotes();
+  var a = '';
+  if (e.type === 'Exam') a += '<button class="btn grad" onclick="examRevisionFromPage()">' + icon('sparkle') + 'Revision plan</button>';
+  if ((e.type === 'Deadline' && e.color !== '10') || (e.own && moment)) {
+    state.dlPlan = { title: cleanTitle(e.rawTitle), date: e.date, start: e.start, code: e.code, planTo: addDays(e.date, -1) >= (state.today || e.date) ? addDays(e.date, -1) : e.date };
+    a += '<button class="btn grad" onclick="offerPlan(state.dlPlan)">' + icon('sparkle') + 'Plan time to do it</button>';
+  }
+  if (e.own) a += '<button class="btn gray" style="color:var(--red)" onclick="removeTask(\'' + esc(e.id) + '\',' + (e.repeating ? 1 : 0) + ')">' + (e.repeating ? 'Remove all repeats' : 'Remove task') + '</button>';
+  if (e.type === 'Exam') a += '<button class="btn gray" style="color:var(--red)" onclick="removeExamId(\'' + esc(e.id) + '\')">Remove exam</button>';
+  $('pg-actions').innerHTML = a;
+}
+function pgDirty() { $('pg-savebar').style.display = 'block'; }
+function pgExtend(m) { var el = $('pg-e'); el.value = endOf(el.value || $('pg-s').value, m); el.dispatchEvent(new Event('change')); pgDirty(); }
+function pgSaveTime(force) {
+  var e = state.noteCtx.event, d = $('pg-date') ? $('pg-date').value : e.date, st = $('pg-s').value, en = $('pg-e') ? $('pg-e').value : st;
+  if (!d || !st) { toast('Pick the date and time'); return; }
+  var b = $('pg-save'); b.disabled = true; b.textContent = 'Saving…';
+  call('appEditTime', e.id, d, st, en, !!force).then(function (r) {
+    if (r && r.ok === false) { b.disabled = false; b.textContent = 'Save time';
+      confirmSheet('This overlaps', r.clash.slice(0, 3).join('\n'), 'Save anyway', function () { pgSaveTime(true); }); return; }
+    toast('Time saved ✓'); openEvPage(e.id, d);
+  }).catch(function (x) { b.disabled = false; b.textContent = 'Save time'; toast(x.message || x); });
+}
+function examRevisionFromPage() {
+  var e = state.noteCtx.event;
+  call('appExams').then(function (r) { state.exams = r; var i = r.exams.map(function (x) { return x.id; }).indexOf(e.id); if (i >= 0) revisionForm(i); });
+}
+function removeExamId(id) {
+  confirmSheet('Remove this exam?', 'Its future revision sessions are removed too.', 'Remove', function () {
+    call('appRemoveExam', id).then(function () { toast('Removed'); goBack(); }).catch(function (x) { toast(x.message || x); });
+  });
+}
+
+// ---------------- notes on a class (+ @class) ----------------
+function shortClass(c) { return DAYS[parts(c.date).w].slice(0, 3) + ' ' + parts(c.date).d + ' ' + MON[parts(c.date).m].slice(0, 3) + ' · ' + (c.type || cleanTitle(c.title)) + (c.start ? ' · ' + ampm(c.start) : ''); }
+function inDays(ymd) {
+  var n = Math.round((Date.parse(ymd + 'T00:00:00Z') - Date.parse((state.today || ymd) + 'T00:00:00Z')) / 86400000);
+  return n === 0 ? 'today' : n === 1 ? 'tomorrow' : n > 1 ? 'in ' + n + ' days' : '';
+}
+function loadEvNotes(id, date) {
+  call('appEventNotes', id, date).then(function (r) { state.noteCtx = r; drawEvNotes(); })
+    .catch(function (e) { if ($('evnotes')) $('evnotes').innerHTML = '<div class="hint">' + esc(e.message || e) + '</div>'; });
+}
+function noteHtml(n, editable) {
+  return '<div class="notebox"' + (editable ? ' style="cursor:pointer" onclick="editNote(\'' + n.id + '\')"' : '') + '><div class="txt">' + esc(n.text) + '</div>' +
+    (n.linkId ? '<span class="linkchip">' + icon('at') + esc(DAYS[parts(n.linkDate).w].slice(0, 3) + ' ' + parts(n.linkDate).d + ' ' + MON[parts(n.linkDate).m].slice(0, 3) +
+      (n.linkStart ? ' · ' + ampm(n.linkStart) : '') + ' · ' + (cleanTitle(n.linkTitle).replace(/^[A-Z]{2,3}\d{4}\s*/, '').split(':')[0] || 'class')) + '</span>' : '') + '</div>';
+}
+function drawEvNotes() {
+  var r = state.noteCtx, box = $('evnotes'); if (!box) return;
+  box.innerHTML = '<div class="section" style="margin-top:0">Notes' + (r.past ? ' · this class is over, notes can still change' : '') + '</div>' +
+    (r.notes.length ? r.notes.map(function (n) { return noteHtml(n, true); }).join('') : '<div class="hint" style="margin:0 4px 8px">No notes yet.</div>') +
+    (r.linked.length ? '<div class="section">To do before this class</div>' + r.linked.map(function (n) {
+      return '<div class="notebox"><div class="txt">' + esc(n.text) + '</div><div class="note" style="margin-top:4px">From ' + esc(cleanTitle(n.eventTitle)) + ' · ' + esc(nice(n.eventDate)) + '</div></div>';
+    }).join('') : '') +
+    '<button class="btn tinted" style="margin-top:6px" onclick="editNote()">' + icon('plus') + 'Add a note</button>';
+}
+function editNote(noteId) {
+  var r = state.noteCtx, n = noteId ? r.notes.filter(function (x) { return x.id === noteId; })[0] : null;
+  state.noteEdit = { id: n ? n.id : '', link: n && n.linkId ? { id: n.linkId, date: n.linkDate, start: n.linkStart, type: '', title: n.linkTitle } : null, hadLink: !!(n && n.linkId) };
+  var box = $('evnotes');
+  box.innerHTML = '<div class="section" style="margin-top:0">' + (n ? 'Edit note' : 'New note') + '</div>' +
+    '<textarea class="nta" id="nt" placeholder="What did the lecturer say? Type @ to link it to a later class." oninput="noteInput(this)">' + esc(n ? n.text : '') + '</textarea>' +
+    '<div id="ntlink"></div><div id="ntpick"></div>' +
+    '<div style="display:flex;gap:10px;margin-top:12px"><button class="btn gray" onclick="drawEvNotes()">Cancel</button><button class="btn" id="ntsave" onclick="saveNote()">Save</button></div>' +
+    (n ? '<button class="btn gray" style="color:var(--red);margin-top:10px" onclick="deleteNote(\'' + n.id + '\')">Delete note</button>' : '');
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  drawNoteLink();
+  setTimeout(function () { var t = $('nt'); if (t) { t.focus(); t.selectionStart = t.value.length; } }, 50);
+}
+function drawNoteLink() {
+  var L = state.noteEdit.link, box = $('ntlink'); if (!box) return;
+  box.innerHTML = L ? '<div class="linkchip" style="font-size:15px;padding:6px 10px">' + icon('at') + esc(shortClass(L)) +
+      ' <button style="border:0;background:none;color:inherit;font-size:17px;padding:0 0 0 6px" onclick="state.noteEdit.link=null;drawNoteLink()" aria-label="remove">×</button></div>' +
+      '<div class="hint" style="margin:6px 2px 0">A deadline will be added at the start of this class.</div>'
+    : (state.noteCtx.choices.length ? '<button class="btn small tinted" style="margin-top:8px" onclick="showPicker()">' + icon('at') + 'Link to a class</button>' : '');
+}
+function noteInput(t) {
+  var v = t.value, p = t.selectionStart;
+  if (v.charAt(p - 1) === '@' && (p === 1 || /\s/.test(v.charAt(p - 2)))) { t.value = v.slice(0, p - 1) + v.slice(p); t.selectionStart = t.selectionEnd = p - 1; showPicker(); }
+}
+function showPicker() {
+  var ch = state.noteCtx.choices, box = $('ntpick');
+  if (!ch.length) { toast('No upcoming classes of this module'); return; }
+  box.innerHTML = '<div class="hint" style="margin:10px 2px 4px">For which class? (' + esc(state.noteCtx.event.code) + ')</div><div class="picker">' + ch.map(function (c, i) {
+    var k = kindOf(c);
+    return '<div class="row" onclick="pickLink(' + i + ')"><div class="tile" style="background:' + k.c + ';width:30px;height:30px">' + icon(k.i) + '</div>' +
+      '<div class="content"><div style="font-size:15px;font-weight:600">' + esc(shortClass(c)) + '</div><div class="note" style="margin:0">' + esc(inDays(c.date)) + '</div></div></div>';
+  }).join('') + '</div>';
+}
+function pickLink(i) { state.noteEdit.link = state.noteCtx.choices[i]; $('ntpick').innerHTML = ''; drawNoteLink(); }
+function saveNote(sure) {
+  var text = $('nt').value.trim(), E = state.noteEdit, r = state.noteCtx;
+  if (!text) { toast('Type the note first'); return; }
+  if (E.hadLink && !E.link && !sure) {
+    var keep = $('nt').value;
+    confirmSheet('Remove the deadline?', 'This note was linked to a class, so it had a deadline. Without the link, the deadline is removed.', 'Remove deadline', function () {
+      saveNote(true);
+    });
+    return;
+  }
+  var b = $('ntsave'); b.disabled = true; b.textContent = 'Saving…';
+  call('appSaveNote', { noteId: E.id, eventId: r.event.id, eventDate: r.event.date, text: text, linkId: E.link ? E.link.id : '' }).then(function (x) {
+    if (x.task && !(E.hadLink && E.link && E.link.id === x.note.linkId && E.id)) offerPlan(x.task);
+    else toast('Note saved ✓');
+    refreshAfterNote();
+  }).catch(function (e) { b.disabled = false; b.textContent = 'Save'; toast(e.message || e); });
+}
+function deleteNote(id) {
+  confirmSheet('Delete this note?', 'If it had a deadline, the deadline is removed too.', 'Delete', function () {
+    call('appDeleteNote', id).then(function () { toast('Deleted'); refreshAfterNote(); }).catch(function (e) { toast(e.message || e); });
+  });
+}
+function refreshAfterNote() {
+  if (state.view === 'event') { var e = state.noteCtx.event; call('appEventNotes', e.id, e.date).then(function (r) { state.noteCtx = r; drawEvNotes(); }); return; }
+  if (state.view === 'today') loadDay(state.date); else if (state.view === 'subjects') loadSubjects(); else if (state.view === 'week') drawCal(); else if (state.view === 'exams') loadExams();
+}
+// "Plan time to do it?" - free times before that class
+function offerPlan(t) {
+  state.plan = { t: t, dur: 60 };
+  openSheet('<div style="text-align:center"><div class="bigicon" style="width:56px;height:56px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;color:#fff;background:var(--green)">' + icon('check') + '</div>' +
+    '<h3>' + (t.id ? 'Saved ✓ Deadline added' : esc(t.title)) + '</h3><div class="hint">Due ' + esc(nice(t.date)) + ', ' + esc(ampm(t.start)) + ' (' + esc(inDays(t.date)) + ')</div></div>' +
+    '<div class="section">Plan time to do it?</div><div class="seg" id="plandur" style="padding:0 0 12px">' +
+      [[30, '30 min'], [60, '1 hr'], [120, '2 hr'], [180, '3 hr']].map(function (d) { return '<button class="chip' + (d[0] === 60 ? ' on' : '') + '" onclick="planDur(' + d[0] + ',this)">' + d[1] + '</button>'; }).join('') + '</div>' +
+    '<button class="btn grad" id="planbtn" onclick="planFind()">' + icon('sparkle') + 'Find free times</button><div style="height:10px"></div>' +
+    '<button class="btn gray" onclick="closeSheet()">No thanks</button><div id="planres"></div>');
+}
+function planDur(m, el) { state.plan.dur = m; Array.prototype.forEach.call($('plandur').children, function (b) { b.classList.remove('on'); }); el.classList.add('on'); }
+function planFind() {
+  var P = state.plan, b = $('planbtn'); b.disabled = true; b.textContent = 'Looking…';
+  call('appSuggest', { title: P.t.title, durationMin: P.dur, category: 'study', deadline: P.t.planTo, code: P.t.code }).then(function (r) {
+    b.disabled = false; b.innerHTML = icon('sparkle') + 'Find again';
+    P.options = r.options;
+    $('planres').innerHTML = r.options.length ? '<div class="section">Best free times</div>' + r.options.map(function (o, i) {
+      return '<div class="dlcard" onclick="planPick(' + i + ')" style="margin:0 0 8px"><div class="tile" style="background:var(--blue)">' + icon('book') + '</div><div class="content">' +
+        '<div class="ttl">' + esc(nice(o.date)) + ' · ' + esc(ampm(o.start)) + ' – ' + esc(ampm(o.end)) + (i === 0 ? ' <span class="pill green">Best match</span>' : '') + '</div>' +
+        '<div class="note" style="margin:2px 0 0">' + esc(o.why.slice(0, 2).join(' · ')) + '</div></div></div>';
+    }).join('') : '<div class="warn" style="margin-top:12px">No free time before that class. You can still add it with + → I know the time.</div>';
+    setTimeout(function () { $('planres').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+  }).catch(function (e) { b.disabled = false; b.textContent = 'Try again'; toast(e.message || e); });
+}
+function planPick(i) {
+  var P = state.plan, o = P.options[i];
+  call('appAddTask', { title: P.t.title, durationMin: P.dur, category: 'study', code: P.t.code, notes: 'Time to do: ' + P.t.title }, { date: o.date, start: o.start }, true)
+    .then(function () { closeSheet(); toast('Planned for ' + nice(o.date) + ', ' + ampm(o.start) + ' ✓'); refreshAfterNote(); })
+    .catch(function (e) { toast(e.message || e); });
+}
+
+// ---------------- Deadlines (live countdown) ----------------
+function cdInfo(ms, submitted) {
+  var left = ms - Date.now();
+  if (submitted) return { t: 'Submitted ✓', c: 'green' };
+  if (left <= 0) return { t: 'Overdue', c: 'red' };
+  var d = Math.floor(left / 86400000), h = Math.floor(left % 86400000 / 3600000), m = Math.floor(left % 3600000 / 60000), sec = Math.floor(left % 60000 / 1000);
+  var t = d > 0 ? d + 'd ' + h + 'h ' + m + 'm' : h > 0 ? h + 'h ' + m + 'm ' + String(sec).padStart(2, '0') + 's' : m + 'm ' + String(sec).padStart(2, '0') + 's';
+  return { t: t, c: left < 86400000 ? 'red' : left < 3 * 86400000 ? 'orange' : 'gray' };
+}
+function dlKind(x) {
+  if (x.type === 'Exam') return { i: 'exam', c: 'var(--purple)' };
+  if (x.type === 'Quiz') return { i: 'pencil', c: 'var(--indigo)' };
+  if (x.own) return { i: 'flag', c: 'var(--orange)' };
+  return { i: 'doc', c: x.submitted ? 'var(--green)' : 'var(--red)' };
+}
+function loadDeadlines() {
+  state.dl = state.dl || { filter: 'todo' };
+  header('COUNTDOWN', 'Deadlines', 'Assignments, quizzes, exams and your own deadlines', false);
+  $('hextra').innerHTML = '<div class="segctl"><button class="' + (state.dl.filter === 'todo' ? 'on' : '') + '" onclick="state.dl.filter=\'todo\';drawDeadlines()">To do</button>' +
+    '<button class="' + (state.dl.filter === 'all' ? 'on' : '') + '" onclick="state.dl.filter=\'all\';drawDeadlines()">All</button></div>';
+  $('main').innerHTML = skeleton(4);
+  call('appDeadlines').then(function (r) {
+    state.dl.skew = r.now - Date.now(); state.dl.items = r.items;
+    dcount(r.items.filter(function (x) { return !x.submitted && x.dueMs > r.now && x.dueMs - r.now < 86400000; }).length);
+    drawDeadlines();
+  }).catch(fail);
+}
+function dlHue(ms) {   // far away = blue, close = red
+  var d = (ms - Date.now()) / 86400000;
+  if (d <= 0) return 0;
+  return Math.round(Math.min(1, d / 14) * 210);
+}
+var DARK = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+function dlLight(h) { return DARK ? '58%' : (h >= 35 && h <= 90 ? '34%' : '42%'); }   // yellow needs to be darker on white
+function dlColor(x) { return x.submitted ? 'hsl(140 70% ' + (DARK ? '48%' : '36%') + ')' : 'hsl(' + dlHue(x.dueMs) + ' 85% ' + dlLight(dlHue(x.dueMs)) + ')'; }
+function dlParts(ms) {   // inside the ring: one short number + unit. Under the ring: the rest, ticking.
+  var left = ms - Date.now();
+  if (left <= 0) return { n: '!', u: 'late', rest: 'Overdue' };
+  var d = Math.floor(left / 86400000), h = Math.floor(left % 86400000 / 3600000), m = Math.floor(left % 3600000 / 60000), sec = String(Math.floor(left % 60000 / 1000)).padStart(2, '0');
+  if (d > 0) return { n: d, u: d === 1 ? 'day' : 'days', rest: h + 'h ' + String(m).padStart(2, '0') + 'm ' + sec + 's' };
+  if (h > 0) return { n: h, u: h === 1 ? 'hour' : 'hours', rest: String(m).padStart(2, '0') + 'm ' + sec + 's' };
+  return { n: m, u: 'min', rest: sec + 's' };
+}
+var RING = 2 * Math.PI * 27;
+function dlFrac(ms) { var d = (ms - Date.now()) / 86400000; return Math.max(0, Math.min(1, d / 14)); }   // full ring = 2 weeks or more
+function drawDeadlines() {
+  if (state.view !== 'deadlines') return;
+  var D = state.dl, now = Date.now();
+  Array.prototype.forEach.call($('hextra').querySelectorAll('.segctl button'), function (b, i) { b.classList.toggle('on', (i === 0) === (D.filter === 'todo')); });
+  var list = (D.items || []).filter(function (x) { return D.filter === 'all' || (!x.submitted && x.dueMs > now - 86400000); });
+  if (!list.length) { $('main').innerHTML = '<div class="empty"><div class="bigicon">' + icon('hourglass') + '</div><b>' + (D.filter === 'todo' ? 'Nothing to do 🎉' : 'No deadlines') + '</b><div class="note">New Moodle deadlines appear here by themselves.</div></div>'; return; }
+  list = list.slice().sort(function (a, b) { return (a.submitted - b.submitted) || (a.dueMs - b.dueMs); });   // closest first, submitted last
+  $('main').innerHTML = '<div class="dlgrid">' + list.map(function (x) {
+    var i = D.items.indexOf(x), col = dlColor(x), k = dlKind(x), p = dlParts(x.dueMs), urgent = !x.submitted && x.dueMs - now < 86400000;
+    return '<div class="dlsq' + (urgent ? ' urgent' : '') + (x.submitted ? ' done' : '') + '" data-due="' + x.dueMs + '" style="--c:' + col + '" onclick="openDeadline(' + i + ')">' +
+      '<div class="dltop"><span class="dltype">' + icon(k.i) + esc(x.type) + '</span></div>' +
+      (x.submitted
+        ? '<div class="dlring"><div class="dlcheck">' + icon('check') + '</div></div><div class="dlbig">Submitted</div>'
+        : '<div class="dlring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" class="trk"/><circle cx="32" cy="32" r="27" class="prg" style="stroke-dasharray:' + RING.toFixed(1) +
+            ';stroke-dashoffset:' + (RING * (1 - dlFrac(x.dueMs))).toFixed(1) + '"/></svg><div class="dlsweep"></div>' +
+            '<div class="dlin"><b class="dln">' + esc(String(p.n)) + '</b><span class="dlu">' + esc(p.u) + '</span></div></div>' +
+          '<div class="dlbig">' + esc(p.rest) + '</div>') +
+      '<div class="dlttl">' + esc(cleanTitle(x.title)) + '</div>' +
+      '<div class="dlwhen">' + esc(nice(x.date)) + ' · ' + esc(ampm(x.time)) + '</div></div>';
+  }).join('') + '</div>';
+  if (window.__cdTimer) clearInterval(window.__cdTimer);
+  window.__cdTimer = setInterval(function () {
+    if (state.view !== 'deadlines') { clearInterval(window.__cdTimer); window.__cdTimer = null; return; }
+    Array.prototype.forEach.call(document.querySelectorAll('.dlsq[data-due]:not(.done)'), function (el) {
+      var ms = Number(el.getAttribute('data-due')), p = dlParts(ms);
+      el.querySelector('.dlbig').textContent = p.rest; el.querySelector('.dln').textContent = p.n; el.querySelector('.dlu').textContent = p.u;
+      el.querySelector('.prg').style.strokeDashoffset = (RING * (1 - dlFrac(ms))).toFixed(1);
+      el.style.setProperty('--c', 'hsl(' + dlHue(ms) + ' 85% ' + dlLight(dlHue(ms)) + ')');
+      el.classList.toggle('urgent', ms - Date.now() < 86400000);
+    });
+  }, 1000);
+}
+function openDeadline(i) {
+  var x = state.dl.items[i];
+  return openEvPage(x.id, x.date);
+}
+function openDeadlineOld(i) {
+  var x = state.dl.items[i], k = dlKind(x), c = cdInfo(x.dueMs, x.submitted);
+  state.dlPlan = { title: cleanTitle(x.title), date: x.date, start: x.time, code: x.code, planTo: addDays(x.date, -1) >= (state.today || x.date) ? addDays(x.date, -1) : x.date };
+  var info = x.notes.split('\n').filter(function (l) { return l && !/^Kind: |^Status: /.test(l); }).slice(0, 3).join('\n');
+  openSheet('<div style="display:flex;gap:12px;align-items:flex-start"><div class="tile" style="background:' + k.c + ';width:44px;height:44px;border-radius:11px">' + icon(k.i) + '</div>' +
+    '<div><h3 style="margin:2px 0 4px">' + esc(cleanTitle(x.title)) + '</h3><div class="meta"><span>' + icon('calendar') + esc(nice(x.date, true)) + ' · ' + esc(ampm(x.time)) + '</span></div>' +
+    (x.venue ? '<div class="meta"><span>' + icon('pin') + esc(x.venue) + '</span></div>' : '') + '</div></div>' +
+    '<div class="bigcd cd ' + c.c + '" data-due="' + x.dueMs + '" data-sub="' + (x.submitted ? 1 : 0) + '">' + esc(c.t) + '</div>' +
+    '<div class="note" style="margin:0 0 12px">' + (x.submitted ? 'Moodle says this is submitted.' : x.type === 'Exam' ? 'until the exam starts' : 'left') + '</div>' +
+    (info ? '<div class="note" style="white-space:pre-line;margin:0 0 14px">' + esc(info) + '</div>' : '') +
+    (x.submitted ? '' : '<button class="btn grad" onclick="offerPlan(state.dlPlan)">' + icon('sparkle') + 'Plan time to do it</button><div style="height:10px"></div>') +
+    (x.type === 'Exam' ? '<button class="btn tinted" onclick="closeSheet();show(\'exams\')">Revision plan</button><div style="height:10px"></div>' : '') +
+    '<div id="evnotes" style="margin-top:18px"><div class="skel" style="height:60px"></div></div>');
+  loadEvNotes(x.id, x.date);
+}
+
+// ---------------- Exams ----------------
+function loadExams() {
+  header('EXAMS', 'Exams', 'Countdown and revision plans', false);
+  $('main').innerHTML = skeleton(3);
+  call('appExams').then(function (r) { state.exams = r; drawExams(); }).catch(fail);
+}
+function drawExams() {
+  var r = state.exams, now = Date.now();
+  var top = '<div class="group" style="margin-bottom:14px"><div class="row importrow" onclick="openExamImport()" style="cursor:pointer">' +
+      '<div class="tile" style="background:var(--purple)">' + icon('upload') + '</div><div class="content"><div class="ttl">Import exam timetable</div><div class="meta">PDF or photo · only your modules</div></div><span class="value">' + icon('chev') + '</span></div>' +
+    '<div class="row importrow" onclick="addExamForm()" style="cursor:pointer;border-top:.5px solid var(--sep)"><div class="tile" style="background:var(--indigo)">' + icon('plus') + '</div>' +
+      '<div class="content"><div class="ttl">Add an exam</div><div class="meta">Type it yourself</div></div><span class="value">' + icon('chev') + '</span></div></div>';
+  if (!r.exams.length) { $('main').innerHTML = top + '<div class="empty"><div class="bigicon">' + icon('exam') + '</div><b>No exams yet</b><div class="note">Import the exam timetable when the faculty sends it.</div></div>'; return; }
+  $('main').innerHTML = top + '<div class="group">' + r.exams.map(function (x, i) {
+    var c = cdInfo(x.dueMs, x.dueMs < now);
+    return '<div class="dlrow" onclick="openExam(' + i + ')"><div class="tile" style="background:' + moduleColor(x.code) + '">' + icon('exam') + '</div><div class="content">' +
+      '<div class="ttl">' + esc(cleanTitle(x.title)) + '</div><div class="meta"><span>' + esc(nice(x.date)) + ' · ' + esc(ampm(x.start)) + '</span>' + (x.venue ? '<span>' + icon('pin') + esc(x.venue) + '</span>' : '') + '</div>' +
+      '<div><span class="badge2' + (x.revision ? '' : ' red') + '">' + (x.revision ? 'Revision: ' + x.revisionDone + ' of ' + x.revision + ' done' : 'No revision plan yet') + '</span></div></div>' +
+      '<div class="cd ' + (x.dueMs < now ? 'gray' : c.c) + '">' + (x.dueMs < now ? 'Done' : esc(c.t.replace(/ \d+m$/, ''))) + '</div></div>';
+  }).join('') + '</div>';
+}
+function openExam(i) {
+  var x = state.exams.exams[i], c = cdInfo(x.dueMs, false);
+  openSheet('<div style="display:flex;gap:12px;align-items:flex-start"><div class="tile" style="background:' + moduleColor(x.code) + ';width:44px;height:44px;border-radius:11px">' + icon('exam') + '</div>' +
+    '<div><h3 style="margin:2px 0 4px">' + esc(cleanTitle(x.title)) + '</h3><div class="meta"><span>' + icon('calendar') + esc(nice(x.date, true)) + ' · ' + esc(ampm(x.start)) + ' – ' + esc(ampm(x.end)) + '</span></div>' +
+    (x.venue ? '<div class="meta"><span>' + icon('pin') + esc(x.venue) + '</span></div>' : '') + '</div></div>' +
+    '<div class="bigcd cd ' + c.c + '">' + esc(c.t) + '</div><div class="note" style="margin:0 0 14px">until the exam starts</div>' +
+    '<button class="btn grad" onclick="revisionForm(' + i + ')">' + icon('sparkle') + (x.revision ? 'Make a new revision plan' : 'Make a revision plan') + '</button><div style="height:10px"></div>' +
+    (x.revision ? '<button class="btn tinted" onclick="closeSheet();state.sub={view:\'modules\',when:\'upcoming\',module:\'' + x.code + '\'};show(\'subjects\')">See revision sessions</button><div style="height:10px"></div>' : '') +
+    '<button class="btn gray" style="color:var(--red)" onclick="removeExam(' + i + ')">Remove exam</button>' +
+    '<div id="evnotes" style="margin-top:18px"><div class="skel" style="height:60px"></div></div>');
+  loadEvNotes(x.id, x.date);
+}
+function removeExam(i) {
+  var x = state.exams.exams[i];
+  confirmSheet('Remove this exam?', 'Its future revision sessions are removed too.', 'Remove', function () {
+    call('appRemoveExam', x.id).then(function () { toast('Removed'); loadExams(); }).catch(function (e) { toast(e.message || e); });
+  });
+}
+function revisionForm(i) {
+  var x = state.exams.exams[i], days = Math.max(1, Math.round((Date.parse(x.date + 'T00:00:00Z') - Date.parse((state.today || x.date) + 'T00:00:00Z')) / 86400000));
+  state.rev = { i: i, sessions: Math.min(6, days), hours: 2 };
+  drawRevisionForm();
+}
+function drawRevisionForm() {
+  var R = state.rev, x = state.exams.exams[R.i];
+  openSheet('<h3>Revision plan</h3><div class="hint" style="margin:-6px 0 12px">' + esc(cleanTitle(x.title)) + ' · ' + esc(nice(x.date)) + ' (' + esc(inDays(x.date)) + ')</div>' +
+    '<div class="group" style="padding:12px 14px"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:17px">Sessions</span>' +
+      '<span class="stepper"><button onclick="state.rev.sessions=Math.max(1,state.rev.sessions-1);drawRevisionForm()">−</button><b>' + R.sessions + '</b><button onclick="state.rev.sessions=Math.min(30,state.rev.sessions+1);drawRevisionForm()">+</button></span></div>' +
+      '<div class="hint" style="margin:12px 0 6px">Each session</div><div class="seg" style="padding:0">' + [[1, '1 hr'], [1.5, '1 hr 30 min'], [2, '2 hr'], [3, '3 hr']].map(function (h) {
+        return '<button class="chip' + (R.hours === h[0] ? ' on' : '') + '" onclick="state.rev.hours=' + h[0] + ';drawRevisionForm()">' + h[1] + '</button>'; }).join('') + '</div></div>' +
+    '<div class="hint" style="margin:10px 4px 14px">I spread the sessions over the days before the exam, in your free time (' + (R.sessions * R.hours) + ' hours in total).</div>' +
+    '<button class="btn grad" id="revbtn" onclick="makeRevision()">' + icon('sparkle') + 'Make the plan</button>');
+}
+function makeRevision() {
+  var R = state.rev, x = state.exams.exams[R.i], b = $('revbtn'); b.disabled = true; b.textContent = 'Planning…';
+  call('appRevisionPlan', x.id, { sessions: R.sessions, hours: R.hours }).then(function (p) { state.revPlan = p; drawRevisionPlan(); })
+    .catch(function (e) { b.disabled = false; b.textContent = 'Try again'; toast(e.message || e); });
+}
+function drawRevisionPlan() {
+  var p = state.revPlan, n = p.sessions.filter(function (s) { return s.on; }).length;
+  openSheet('<h3>Your revision plan</h3><div class="hint" style="margin:-6px 0 12px">' + esc(cleanTitle(p.exam.title)) + ' · ' + esc(nice(p.exam.date)) + '</div>' +
+    (p.sessions.length ? '<div class="group">' + p.sessions.map(function (s, i) {
+      return '<div class="row' + (s.on ? '' : ' off') + '" style="align-items:center"><div class="tile" style="background:var(--blue)">' + icon('book') + '</div><div class="content">' +
+        '<div class="ttl">' + (i + 1) + '. ' + esc(nice(s.date)) + '</div><div class="meta"><span>' + icon('clock') + esc(ampm(s.start)) + ' – ' + esc(ampm(s.end)) + '</span></div></div>' +
+        '<button class="sw' + (s.on ? ' on' : '') + '" onclick="state.revPlan.sessions[' + i + '].on=!state.revPlan.sessions[' + i + '].on;drawRevisionPlan()" aria-label="add"></button></div>';
+    }).join('') + '</div>' : '') +
+    (p.missed ? '<div class="warn" style="margin-top:10px">' + p.missed + ' session(s) did not fit: there is not enough free time. Try shorter sessions.</div>' : '') +
+    (p.existing ? '<div class="hint" style="margin:10px 4px 0">This replaces your ' + p.existing + ' old revision session(s) that are still to come.</div>' : '') +
+    '<div style="margin-top:14px"><button class="btn grad" id="revsave"' + (n ? '' : ' disabled') + ' onclick="saveRevision()">' + icon('check') + 'Add ' + n + (n === 1 ? ' session' : ' sessions') + '</button></div>' +
+    '<div style="height:10px"></div><button class="btn gray" onclick="drawRevisionForm()">Change</button>');
+}
+function saveRevision() {
+  var p = state.revPlan, b = $('revsave'); b.disabled = true; b.textContent = 'Adding…';
+  call('appRevisionSave', p.exam.id, p.sessions.filter(function (s) { return s.on; }), p.existing > 0).then(function (r) {
+    closeSheet(); toast(r.added + ' revision sessions added ✓'); loadExams();
+  }).catch(function (e) { b.disabled = false; b.textContent = 'Try again'; toast(e.message || e); });
+}
+function addExamForm() {
+  var mods = (state.exams && state.exams.modules || []).map(function (c) { return '<option>' + c + '</option>'; }).join('');
+  openSheet('<h3>Add an exam</h3><div class="group">' +
+    '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('lecture') + '</div><label>Module</label><select id="x-code">' + mods + '</select></div>' +
+    '<div class="field"><div class="tile" style="background:var(--red)">' + icon('calendar') + '</div><label>Date</label><input id="x-edate" type="date"></div>' +
+    '<div class="field"><div class="tile" style="background:var(--indigo)">' + icon('clock') + '</div><label>Starts</label><input id="x-es" type="time" value="09:00"></div>' +
+    '<div class="field"><div class="tile" style="background:var(--orange)">' + icon('clock') + '</div><label>Ends</label><input id="x-ee" type="time" value="12:00"></div>' +
+    '<div class="field"><div class="tile" style="background:var(--green)">' + icon('pin') + '</div><input id="x-ev" placeholder="Hall (optional)"></div></div>' +
+    '<div style="margin-top:14px"><button class="btn" id="x-save">Add exam</button></div>');
+  $('x-save').onclick = function () {
+    var x = { code: $('x-code').value, date: $('x-edate').value, start: $('x-es').value, end: $('x-ee').value, venue: $('x-ev').value.trim() };
+    if (!x.code || !x.date || !x.start) { toast('Choose the module, date and time'); return; }
+    call('appAddExam', x).then(function () { closeSheet(); toast('Exam added ✓'); loadExams(); }).catch(function (e) { toast(e.message || e); });
+  };
+}
+function openExamImport() {
+  header('EXAMS', 'Import exam timetable', 'From a PDF or a photo', false);
+  $('main').innerHTML = '<div class="drop"><div class="bigicon" style="background:var(--purple)">' + icon('exam') + '</div>' +
+    '<div class="ttl" style="font-size:19px">Choose the exam timetable</div><div class="note" style="margin:6px 0 16px">The PDF from the faculty, or a clear photo of it.</div>' +
+    '<label class="btn grad" style="display:inline-flex;width:auto;padding:13px 24px">' + icon('upload') + 'Choose PDF or photo' +
+    '<input type="file" accept="application/pdf,image/*" style="display:none" onchange="examPicked(this)"></label>' +
+    '<ul class="bul"><li>' + icon('check') + 'Only the modules you are enrolled in on Moodle</li><li>' + icon('check') + 'You check every exam before it is added</li></ul></div>' +
+    '<div style="margin-top:16px"><button class="btn gray" onclick="loadExams()">Back</button></div>';
+}
+function examPicked(input) {
+  var f = input.files && input.files[0]; if (!f) return;
+  $('main').innerHTML = '<div class="reading"><div class="spinner"></div><div class="ttl">Reading the exam timetable…</div><div class="note" style="margin-top:6px">' + esc(f.name) + '<br>This takes about 20 seconds.</div></div>';
+  readPicked(f, function (b64, mime) {
+    call('appExamPreview', b64, mime).then(function (r) { r.exams.forEach(function (e) { e.on = e.ok; }); state.examImp = r; drawExamReview(); })
+      .catch(function (e) { $('main').innerHTML = '<div class="warn">' + esc(e.message || e) + '</div><div style="margin-top:14px"><button class="btn" onclick="openExamImport()">Try again</button></div>'; });
+  });
+}
+function drawExamReview() {
+  var r = state.examImp, n = r.exams.filter(function (e) { return e.on; }).length;
+  header('CHECK BEFORE ADDING', 'Your exams', '', false);
+  $('main').innerHTML = (r.note ? '<div class="warn" style="margin-bottom:10px">' + esc(r.note) + '</div>' : '') + '<div class="group">' + r.exams.map(function (e, i) {
+    return '<div class="row' + (e.on ? '' : ' off') + '" style="align-items:center"><div class="tile" style="background:' + moduleColor(e.code) + '">' + icon('exam') + '</div><div class="content">' +
+      '<div class="ttl">' + esc(e.code) + (e.name ? ' · ' + esc(e.name) : '') + '</div>' +
+      (e.ok ? '<div class="meta"><span>' + esc(nice(e.date)) + ' · ' + esc(ampm(e.start)) + ' – ' + esc(ampm(e.end)) + '</span>' + (e.venue ? '<span>' + icon('pin') + esc(e.venue) + '</span>' : '') + '</div>'
+        : '<div class="meta" style="color:var(--orange)">Not clear: ' + esc(e.raw) + ' — add it by hand</div>') + '</div>' +
+      (e.ok ? '<button class="sw' + (e.on ? ' on' : '') + '" onclick="state.examImp.exams[' + i + '].on=!state.examImp.exams[' + i + '].on;drawExamReview()"></button>' : '') + '</div>';
+  }).join('') + '</div>' +
+    (r.others.length ? '<div class="hint" style="margin:10px 4px 0">Not your modules (skipped): ' + esc(r.others.join(', ')) + '</div>' : '') +
+    '<div style="margin-top:20px"><button class="btn grad" id="exsave"' + (n ? '' : ' disabled') + ' onclick="saveExams()">' + icon('check') + 'Add ' + n + (n === 1 ? ' exam' : ' exams') + '</button></div>';
+}
+function saveExams() {
+  var b = $('exsave'); b.disabled = true; b.textContent = 'Adding…';
+  call('appExamSave', { exams: state.examImp.exams.filter(function (e) { return e.on; }) }).then(function (r) { toast(r.added + ' exams added ✓'); loadExams(); })
+    .catch(function (e) { b.disabled = false; b.textContent = 'Try again'; toast(e.message || e); });
+}
+
+// ---------------- Updates ----------------
+function updKind(m) {
+  if (/^⚠️/.test(m)) return { i: 'alert', c: 'var(--orange)' };
+  if (/^❌/.test(m)) return { i: 'x', c: 'var(--red)' };
+  if (/^🔔/.test(m)) return { i: 'bell', c: 'var(--blue)' };
+  if (/^📌/.test(m)) return { i: 'doc', c: 'var(--red)' };
+  if (/^📝/.test(m)) return { i: 'pencil', c: 'var(--purple)' };
+  if (/^🧪/.test(m)) return { i: 'flask', c: 'var(--teal)' };
+  if (/^🏖️/.test(m)) return { i: 'sun', c: 'var(--orange)' };
+  if (/^❓/.test(m)) return { i: 'question', c: 'var(--orange)' };
+  if (/^✳️|^✅/.test(m)) return { i: 'check', c: 'var(--green)' };
+  return { i: 'bell', c: 'var(--gray)' };
+}
+function loadUpdates() {
+  header('ACTIVITY', 'Updates', 'Questions for you, then what changed', false);
+  $('main').innerHTML = skeleton(4);
+  Promise.all([call('appQuestions'), call('appUpdates')]).then(function (rr) {
+    var qs = rr[0], list = rr[1];
+    count(qs.filter(function (q) { return q.yesNo; }).length);
+    var qh = qs.length ? '<div class="section" style="color:var(--orange)">Needs your answer (' + qs.length + ')</div>' + questionsHtml(qs) : '';
+    if (!list.length) { $('main').innerHTML = qh + '<div class="empty"><div class="bigicon">' + icon('bell') + '</div><b>No updates yet</b></div>'; return; }
+    $('main').innerHTML = qh + (qs.length ? '<div class="section">What changed</div>' : '') + '<div class="group">' + list.map(function (n) {
+      var k = updKind(n.message), msg = n.message.replace(/^[^A-Za-z0-9"'(]+\s*/, '');
+      return '<div class="row"><div class="tile" style="background:' + k.c + '">' + icon(k.i) + '</div><div class="content">' +
+        '<div style="font-size:15px">' + esc(msg) + '</div><div class="note">' + esc(n.time) + '</div></div></div>';
+    }).join('') + '</div>';
+  }).catch(fail);
+}
+
+if (IN_GOOGLE) show('today');
+else takeSetupLink().then(function (linked) {
+  if (linked === 'failed') return;
+  loadDev().then(function (d) { if (d) startApp(linked === true); else drawSetup(); });
+});
+</script>
+</body>
+</html>
